@@ -1,15 +1,15 @@
 -- =========================================================
--- FODO client — Macho-bound auth ENFORCED (no manual typing)
--- Back-end: /FodoAuthMacho?macho=<MACHO>&version=<VER>
+-- SAM client — Macho-bound auth ENFORCED (no manual typing)
+-- Back-end: /SAMAuthMacho?macho=<MACHO>&version=<VER>
 -- Requires you redeem in Discord with: /redeem key:XXXX macho:<MACHO_KEY>
 -- =========================================================
 
 -- Public gates you can use anywhere
--- FODO_AUTH_OK    = false     -- becomes true only on successful auth
--- FODO_AUTH_READY = false     -- becomes true once we have a final result (success or failure)
--- FODO_VIP        = false     -- set by server; shows whether this Macho has VIP
--- function FODO_IsAuthed() return FODO_AUTH_OK end
--- function FODO_HasVIP()   return FODO_VIP    end
+-- SAM_AUTH_OK    = false     -- becomes true only on successful auth
+-- SAM_AUTH_READY = false     -- becomes true once we have a final result (success or failure)
+-- SAM_VIP        = false     -- set by server; shows whether this Macho has VIP
+-- function SAM_IsAuthed() return SAM_AUTH_OK end
+-- function SAM_HasVIP()   return SAM_VIP    end
 
 -- ===== helpers =====
 local function urlencode(str)
@@ -39,7 +39,7 @@ end
 -- ===== config =====
 local VERSION = "3.1"
 -- local HOSTS   = { "185.249.196.36:3000", "127.0.0.1:3000", "localhost:3000" }
-local DEBUG   = (GetConvar and (GetConvar("fodo_debug","0") == "1")) or false
+local DEBUG   = (GetConvar and (GetConvar("SAM_debug","0") == "1")) or false
 
 local function humanize(sec)
     sec = math.floor(tonumber(sec) or 0)
@@ -55,13 +55,13 @@ local function humanize(sec)
 end
 
 -- Wait helper so you can block menu creation cleanly
-local function FODO_WaitForAuth(timeout_ms)
+local function SAM_WaitForAuth(timeout_ms)
     local t0 = GetGameTimer()
-    while not FODO_AUTH_READY do
+    while not SAM_AUTH_READY do
         if GetGameTimer() - t0 >= (timeout_ms or 8000) then break end
         Wait(0)
     end
-    return FODO_AUTH_OK
+    return SAM_AUTH_OK
 end
 
 -- ===== Auth thread (runs immediately on load) =====
@@ -73,55 +73,55 @@ end
 --         if ok and val then macho_key = tostring(val) end
 --     end
 --     if macho_key == "" then
---         print(("[FODO] v%s | Missing MachoAuthenticationKey on client."):format(VERSION))
---         FODO_AUTH_OK, FODO_AUTH_READY = false, true
+--         print(("[SAM] v%s | Missing MachoAuthenticationKey on client."):format(VERSION))
+--         SAM_AUTH_OK, SAM_AUTH_READY = false, true
 --         return
 --     end
 
 --     local response, url_used
 --     for _,host in ipairs(HOSTS) do
---         local url = string.format("http://%s/FodoAuthMacho?macho=%s&version=%s", host, urlencode(macho_key), urlencode(VERSION))
+--         local url = string.format("http://%s/SAMAuthMacho?macho=%s&version=%s", host, urlencode(macho_key), urlencode(VERSION))
 --         url_used = url
 --         response = safe_web_request(url)
 --         if response and response ~= "" then break end
 --     end
 
 --     if not response or response == "" then
---         print(("[FODO] v%s | Server unreachable."):format(VERSION))
---         if DEBUG then print("[FODO] last URL:", url_used or "n/a") end
---         FODO_AUTH_OK, FODO_AUTH_READY = false, true
+--         print(("[SAM] v%s | Server unreachable."):format(VERSION))
+--         if DEBUG then print("[SAM] last URL:", url_used or "n/a") end
+--         SAM_AUTH_OK, SAM_AUTH_READY = false, true
 --         return
 --     end
 
 --     local trimmed = (response:match("^%s*(.-)%s*$")) or response
 --     if not is_likely_json(trimmed) then
---         print(("[FODO] v%s | Bad response."):format(VERSION))
---         if DEBUG then print("[FODO] RAW:", trimmed) end
---         FODO_AUTH_OK, FODO_AUTH_READY = false, true
+--         print(("[SAM] v%s | Bad response."):format(VERSION))
+--         if DEBUG then print("[SAM] RAW:", trimmed) end
+--         SAM_AUTH_OK, SAM_AUTH_READY = false, true
 --         return
 --     end
 
 --     local data = json_decode_safe(trimmed)
 --     if not data then
---         print(("[FODO] v%s | Bad response."):format(VERSION))
---         if DEBUG then print("[FODO] RAW:", trimmed) end
---         FODO_AUTH_OK, FODO_AUTH_READY = false, true
+--         print(("[SAM] v%s | Bad response."):format(VERSION))
+--         if DEBUG then print("[SAM] RAW:", trimmed) end
+--         SAM_AUTH_OK, SAM_AUTH_READY = false, true
 --         return
 --     end
 
 --     if (data.auth == true or data.auth == "true") and data.expires_in_seconds then
 --         -- success
---         FODO_AUTH_OK, FODO_AUTH_READY = true, true
+--         SAM_AUTH_OK, SAM_AUTH_READY = true, true
 
 --         -- VIP flag from server (non-breaking extra)
---         FODO_VIP = (data.vip == true)
+--         SAM_VIP = (data.vip == true)
 
 --         -- keep online presence fresh (15s heartbeat)
 --         CreateThread(function()
---             while FODO_AUTH_OK do
+--             while SAM_AUTH_OK do
 --                 Wait(15000)
 --                 for _,h in ipairs(HOSTS) do
---                     local ping = string.format("http://%s/FodoPing?macho=%s", h, urlencode(macho_key))
+--                     local ping = string.format("http://%s/SAMPing?macho=%s", h, urlencode(macho_key))
 --                     local _ = safe_web_request(ping)
 --                     if _ then break end
 --                 end
@@ -131,37 +131,37 @@ end
 --         local left = humanize(data.expires_in_seconds)
 --         local plan = tostring(data.plan or "?")
 --         local exp  = tostring(data.expires_at or "?")
---         local vip  = FODO_VIP and " • VIP" or ""
---         print(("[FODO] v%s | Plan: %s | Left: %s | Expiry: %s%s"):format(VERSION, plan, left, exp, vip))
+--         local vip  = SAM_VIP and " • VIP" or ""
+--         print(("[SAM] v%s | Plan: %s | Left: %s | Expiry: %s%s"):format(VERSION, plan, left, exp, vip))
 --         return
 --     end
 
 --     -- Failed: show one-line, clean reason; DO NOT build menu later
 --     local err = tostring(data.error or "unknown")
 --     if err == "outdated" then
---         print(("[FODO] v%s | Outdated. Required: %s"):format(VERSION, tostring(data.required or "?")))
+--         print(("[SAM] v%s | Outdated. Required: %s"):format(VERSION, tostring(data.required or "?")))
 --     elseif err == "missing_macho" then
---         print(("[FODO] v%s | No Macho key provided."):format(VERSION))
+--         print(("[SAM] v%s | No Macho key provided."):format(VERSION))
 --     elseif err == "not_bound_or_inactive" then
---         print(("[FODO] v%s | Not bound or no active license.\nRedeem in Discord: /redeem key:XXXX-XXXX-XXXX-XXXX macho:<YOUR-MACHO-KEY>"):format(VERSION))
+--         print(("[SAM] v%s | Not bound or no active license.\nRedeem in Discord: /redeem key:XXXX-XXXX-XXXX-XXXX macho:<YOUR-MACHO-KEY>"):format(VERSION))
 --     elseif err == "expired" or err == "License key expired" then
---         print(("[FODO] v%s | License expired. Please renew."):format(VERSION))
+--         print(("[SAM] v%s | License expired. Please renew."):format(VERSION))
 --     else
---         print(("[FODO] v%s | Auth failed: %s"):format(VERSION, err))
+--         print(("[SAM] v%s | Auth failed: %s"):format(VERSION, err))
 --     end
---     FODO_AUTH_OK, FODO_AUTH_READY = false, true
+--     SAM_AUTH_OK, SAM_AUTH_READY = false, true
 -- end)
 
 -- -- ===== ENFORCEMENT: block menu creation unless authed =====
 -- -- Call this before building your UI or running any features.
--- local function FODO_RequireAuthOrNotify()
---     if FODO_AUTH_READY and FODO_AUTH_OK then return true end
---     if not FODO_AUTH_READY then FODO_WaitForAuth(8000) end
---     if FODO_AUTH_OK then return true end
+-- local function SAM_RequireAuthOrNotify()
+--     if SAM_AUTH_READY and SAM_AUTH_OK then return true end
+--     if not SAM_AUTH_READY then SAM_WaitForAuth(8000) end
+--     if SAM_AUTH_OK then return true end
 
 --     -- One subtle, user-facing message (no spam):
 --     if type(MachoMenuNotification) == "function" then
---         MachoMenuNotification("FODO.LUA", "RENEW LICENSE • Redeem in Discord with /redeem and your MACHO key.")
+--         MachoMenuNotification("SAM.LUA", "RENEW LICENSE • Redeem in Discord with /redeem and your MACHO key.")
 --     end
 --     return false
 -- end
@@ -169,14 +169,14 @@ end
 -- -- =========================================================
 -- -- >>> BUILD YOUR MENU ONLY AFTER AUTH SUCCEEDS <<<
 -- -- =========================================================
--- if not FODO_RequireAuthOrNotify() then
+-- if not SAM_RequireAuthOrNotify() then
 --     -- Stop here. Do NOT create any windows/toggles/features.
 --     return
 -- end
 
 -- If your file continues below with menu creation, it will only run when authed.
 -- Example usage inside your UI builder:
---   if FODO_HasVIP() then
+--   if SAM_HasVIP() then
 --       -- show VIP tab / features
 --   end
 
@@ -200,11 +200,11 @@ local SectionChildHeight = MenuSize.y - (2 * SectionsPadding)
 local ColumnWidth = (SectionChildWidth - (SectionsPadding * 3)) / 2
 local HalfHeight = (SectionChildHeight - (SectionsPadding * 3)) / 2
 
-local MenuWindow = MachoMenuTabbedWindow("Fodo", MenuStartCoords.x, MenuStartCoords.y, MenuSize.x, MenuSize.y, TabsBarWidth)
+local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoords.y, MenuSize.x, MenuSize.y, TabsBarWidth)
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "discord.gg/gamerware")
+MachoMenuText(MenuWindow, "ALHUNTER")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -415,7 +415,7 @@ end
 local function LoadBypasses()
     Wait(1500)
 
-    MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Loading Bypasses.")
+    MachoMenuNotification("[NOTIFICATION] SAM Menu", "Loading Bypasses.")
 
     local function DetectFiveGuard()
         local function ResourceFileExists(resourceName, fileName)
@@ -445,11 +445,11 @@ local function LoadBypasses()
 
     Wait(100)
 
-    MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Finalizing.")
+    MachoMenuNotification("[NOTIFICATION] SAM Menu", "Finalizing.")
 
     Wait(500)
 
-    MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Finished Enjoy.")
+    MachoMenuNotification("[NOTIFICATION] SAM Menu", "Finished Enjoy.")
 end
 
 LoadBypasses()
@@ -1551,8 +1551,8 @@ MachoMenuButton(PlayerTabSections[2], "Change Model", function()
     end
 end)
 
-MachoMenuButton(PlayerTabSections[2], "White Fodo Drip", function()
-    function WhiteFodoDrip()
+MachoMenuButton(PlayerTabSections[2], "White SAM Drip", function()
+    function WhiteSAMDrip()
         local ped = PlayerPedId()
 
         -- Jacket
@@ -1569,11 +1569,11 @@ MachoMenuButton(PlayerTabSections[2], "White Fodo Drip", function()
         SetPedPropIndex(ped, 0, 1, 0, true)
     end
 
-    WhiteFodoDrip()
+    WhiteSAMDrip()
 end)
 
-MachoMenuButton(PlayerTabSections[2], "Fodo Mafia Drip", function()
-    function FodoMafia()
+MachoMenuButton(PlayerTabSections[2], "SAM Mafia Drip", function()
+    function SAMMafia()
         local ped = PlayerPedId()
 
         -- Jacket
@@ -1592,7 +1592,7 @@ MachoMenuButton(PlayerTabSections[2], "Fodo Mafia Drip", function()
         SetPedPropIndex(ped, 1, 3, 0, true)
     end
 
-    FodoMafia()
+    SAMMafia()
 end)
 
 MachoMenuButton(PlayerTabSections[3], "Heal", function()
@@ -2943,7 +2943,7 @@ MachoMenuButton(TeleportTabSections[2], "Print Current Coords", function()
 
             local coords = zXcVbNmQwErTyUi(aSdFgHjKlQwErTy())
             local x, y, z = coords.x, coords.y, coords.z
-            print(string.format("[^3FODO^7] [^4DEBUG^7] - %.2f, %.2f, %.2f", x, y, z))
+            print(string.format("[^3SAM^7] [^4DEBUG^7] - %.2f, %.2f, %.2f", x, y, z))
         end
 
         Xy9TqLzVmN()
@@ -4150,8 +4150,8 @@ MachoMenuButton(EventTabSections[1], "Spawn", function()
                             items = {
                                 {
                                     id = "]] .. ItemName .. [[",
-                                    image = "FODO",
-                                    name = "FODO",
+                                    image = "SAM",
+                                    name = "SAM",
                                     page = 1,
                                     price = 500,
                                     quantity = ]] .. ItemAmount .. [[,
@@ -4175,16 +4175,16 @@ MachoMenuButton(EventTabSections[1], "Spawn", function()
                         items = {
                             {
                                 id = "]] .. ItemName .. [[",
-                                image = "FODO",
-                                name = "FODO",
-                                page = FODO,
-                                price = FODO,
+                                image = "SAM",
+                                name = "SAM",
+                                page = SAM,
+                                price = SAM,
                                 quantity = ]] .. ItemAmount .. [[,
-                                stock = FODO,
+                                stock = SAM,
                                 totalPrice = 0
                             }
                         },
-                        method = "FODO",
+                        method = "SAM",
                         total = 0
                     }, "cash")
                 end
@@ -4254,7 +4254,7 @@ MachoMenuButton(EventTabSections[1], "Spawn", function()
                 if IsAllowedIP(CurrentIP) then
                     MachoInjectResource2(3, CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
                         local function sDfjMawT34()
-                            TriggerServerEvent("cannabis_cafe:giveStockItems", { item = "]] .. ItemName .. [[", newItem = "FODO", pricePerItem = 0 }, ]] .. ItemAmount .. [[)
+                            TriggerServerEvent("cannabis_cafe:giveStockItems", { item = "]] .. ItemName .. [[", newItem = "SAM", pricePerItem = 0 }, ]] .. ItemAmount .. [[)
                         end
 
                         sDfjMawT34()
@@ -4457,7 +4457,7 @@ MachoMenuButton(EventTabSections[1], "Spawn", function()
                         local item = {
                             difficulty = { "medium", "medium" },
                             item = "]] .. ItemName .. [[",
-                            label = "FODO",
+                            label = "SAM",
                             price = { 110, 140 }
                         }
 
@@ -4553,10 +4553,10 @@ MachoMenuButton(EventTabSections[1], "Spawn", function()
         end 
 
         if not ResourceFound then
-            MachoMenuNotification("[NOTIFICATION] Fodo Menu", "No Triggers Found.")
+            MachoMenuNotification("[NOTIFICATION] SAM Menu", "No Triggers Found.")
         end
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Invalid Item or Amount.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Invalid Item or Amount.")
     end
 end)
 
@@ -4628,10 +4628,10 @@ MachoMenuButton(EventTabSections[2], "Spawn", function()
         end
 
         if not ResourceFound then
-            MachoMenuNotification("[NOTIFICATION] Fodo Menu", "No Triggers Found.")
+            MachoMenuNotification("[NOTIFICATION] SAM Menu", "No Triggers Found.")
         end
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Invalid Item or Amount.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Invalid Item or Amount.")
     end
 end)
 
@@ -4905,9 +4905,9 @@ MachoMenuButton(VIPTabSections[1], "Spawn", function()
                         XTYZ = CreateThread
                         XTYZ(function()
                             for i = 1, ]] .. ItemAmount .. [[ do
-                                local fododealer = "fodolol" .. math.random(1000,9999)
-                                Fodo_TriggerServerEvent = TriggerServerEvent
-                                Fodo_TriggerServerEvent('shop:purchaseItem', fododealer, ']] .. ItemName .. [[', 0)
+                                local SAMdealer = "SAMlol" .. math.random(1000,9999)
+                                SAM_TriggerServerEvent = TriggerServerEvent
+                                SAM_TriggerServerEvent('shop:purchaseItem', SAMdealer, ']] .. ItemName .. [[', 0)
                                 Wait(100)
                             end
                         end)
@@ -4959,7 +4959,7 @@ MachoMenuButton(VIPTabSections[1], "Spawn", function()
                             ['price'] = 0,
                             ['item'] = "]] .. ItemName .. [[",
                             ['amount'] = ]] .. ItemAmount .. [[,
-                            ['label'] = 'FODO'
+                            ['label'] = 'SAM'
                         }, {
                             ['args'] = {
                                 ['payment'] = {
@@ -5013,10 +5013,10 @@ MachoMenuButton(VIPTabSections[1], "Spawn", function()
         end 
 
         if not ResourceFound then
-            MachoMenuNotification("[NOTIFICATION] Fodo Menu", "No Triggers Found.")
+            MachoMenuNotification("[NOTIFICATION] SAM Menu", "No Triggers Found.")
         end
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Invalid Item or Amount.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Invalid Item or Amount.")
     end
 end)
 
@@ -5029,7 +5029,7 @@ MachoMenuButton(VIPTabSections[2], "Police Job", function()
             CheckJob(job, true) 
         ]])
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Resource Not Found.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Resource Not Found.")
     end
 end)
 
@@ -5042,7 +5042,7 @@ MachoMenuButton(VIPTabSections[2], "EMS Job", function()
             CheckJob(job, true) 
         ]])
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Resource Not Found.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Resource Not Found.")
     end
 end)
 
@@ -5108,7 +5108,7 @@ MachoMenuButton(VIPTabSections[3], "Staff (1) (BETA) - Menu", function()
             _G.ToggleUI(true)
         ]])
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Resource Not Found.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Resource Not Found.")
     end
 end)
 
@@ -5125,7 +5125,7 @@ MachoMenuButton(VIPTabSections[3], "Staff (2) (BETA) - Announce", function()
             }
 
             local data = {
-                message = 'Hey, I’m Tappy — one of the best devs in the FiveM scene. Hit me up: discord.gg/gamerware - P.S. WoodyTheDev',
+                message = 'Hey, I’m Tappy — one of the best devs in the FiveM scene. Hit me up: ALHYNTER - P.S. WoodyTheDev',
                 codeName = 'x9_blast',
                 code = 'discord.gg/gamerware',
                 icon = 'fas fa-bullhorn',
@@ -5144,7 +5144,7 @@ MachoMenuButton(VIPTabSections[3], "Staff (2) (BETA) - Announce", function()
             WoodyBETA()
         ]])
     else
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", "Resource Not Found.")
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", "Resource Not Found.")
     end
 end)
 
@@ -5321,7 +5321,7 @@ end)
 
 MachoMenuButton(SettingTabSections[3], "Anti-Cheat Checker", function()
     local function notify(fmt, ...)
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", string.format(fmt, ...))
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", string.format(fmt, ...))
     end
 
     local function ResourceFileExists(resourceNameTwo, fileNameTwo)
@@ -5383,7 +5383,7 @@ end)
 
 MachoMenuButton(SettingTabSections[3], "Framework Checker", function()
     local function notify(fmt, ...)
-        MachoMenuNotification("[NOTIFICATION] Fodo Menu", string.format(fmt, ...))
+        MachoMenuNotification("[NOTIFICATION] SAM Menu", string.format(fmt, ...))
     end
 
     local function IsStarted(res)
