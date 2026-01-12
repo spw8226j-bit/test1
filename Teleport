@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.5")
+MachoMenuText(MenuWindow, "v.6")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1872,46 +1872,46 @@ MachoMenuButton(ServerTabSections[1], "Explode Player", function()
     end
 end)
 
-MachoMenuButton(ServerTabSections[1], "Give All Nearby Objects", function()
-    local xVbNmZxLcVbNpLo = MachoMenuGetSelectedPlayer()
-    if xVbNmZxLcVbNpLo and xVbNmZxLcVbNpLo > 0 then
-        MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function TzYuIoPlMnBvCxZa()
-                local xWcErTvBnMzLp = %d
+MMachoMenuButton(ServerTabSections[1], "Object Spam Player", function()
+    local targetId = MachoMenuGetSelectedPlayer()
+    if targetId and targetId > 0 then
+        MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
+            local function RunObjectSpam()
+                local tid = %d
+                
+                -- تعريف الأوامر بأسلوبك المعتاد
+                local _GPP = GetPlayerPed
+                local _GEC = GetEntityCoords
+                local _SEC = SetEntityCoords
+                local _GGP = GetGamePool
+                local _NRCE = NetworkRequestControlOfEntity
 
-                local aGhJkLpOiUyTr = _G.GetPlayerPed
-                local bUiOpLkJhGfDs = _G.DoesEntityExist
-                local cPzWsXcEdCvBnM = _G.GetEntityCoords
-                local dRtYuIoPlMnBgF = _G.SetEntityCoords
-                local eAsDfGhJkLqWe = _G.RequestControlOfEntity or RequestCtrlOverEntity
-                local fZxCvBnMqWeRt = _G.NetworkRequestControlOfEntity
-                local gXcVbNmZqWeRt = _G.SetEntityAsMissionEntity
+                local tPed = _GPP(tid)
+                if not DoesEntityExist(tPed) then return end
+                local coords = _GEC(tPed)
 
-                local function iRequest(obj)
-                    fZxCvBnMqWeRt(obj)
-                    eAsDfGhJkLqWe(obj)
-                    gXcVbNmZqWeRt(obj, true, true)
-                end
+                -- الحصول على جميع الأجسام في الخريطة
+                local allObjects = _GGP('CObject')
 
                 CreateThread(function()
-                    Wait(0)
-
-                    local targetPed = aGhJkLpOiUyTr(xWcErTvBnMzLp)
-                    if not bUiOpLkJhGfDs(targetPed) then return end
-                    local coords = cPzWsXcEdCvBnM(targetPed)
-
-                    for obj in EnumerateObjects() do
-                        if bUiOpLkJhGfDs(obj) then
-                            iRequest(obj)
-                            dRtYuIoPlMnBgF(obj, coords.x, coords.y, coords.z, false, false, false, false)
+                    for i = 1, #allObjects do
+                        local obj = allObjects[i]
+                        if DoesEntityExist(obj) then
+                            -- طلب السيطرة عشان نقدر نحركه
+                            _NRCE(obj)
+                            
+                            -- نقله فوق رأس اللاعب بـ 2 متر عشان يطيح عليه
+                            _SEC(obj, coords.x, coords.y, coords.z + 2.0, false, false, false, false)
+                            
+                            -- ننتظر جزء بسيط جداً عشان ما يصير لاق قوي ويكشفنا الأنتي شيت
+                            Wait(10) 
                         end
                     end
                 end)
             end
 
-            TzYuIoPlMnBvCxZa()
-
-        ]]):format(xVbNmZxLcVbNpLo))
+            RunObjectSpam()
+        ]]):format(targetId))
     end
 end)
 
@@ -1949,66 +1949,42 @@ end)
 
 
 MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
-    local FtZpLaWcVyXbMn = MachoMenuGetSelectedPlayer()
-    if FtZpLaWcVyXbMn and FtZpLaWcVyXbMn > 0 then
-        MachoInjectResource((CheckResource("ReaperV4") and "ReaperV4") or (CheckResource("oxmysql") and "oxmysql") or (CheckResource("monitor") and "monitor") or "any", ([[
-            local function GhJkUiOpLzXcVbNm()
-                local kJfHuGtFrDeSwQa = %d
-                local oXyBkVsNzQuH = _G.GetPlayerPed
-                local yZaSdFgHjKlQ = _G.GetVehiclePedIsIn
-                local wQeRtYuIoPlMn = _G.PlayerPedId
-                local cVbNmQwErTyUiOp = _G.SetVehicleExclusiveDriver_2
-                local ghjawrusdgddsaf = _G.SetPedIntoVehicle
+    local targetId = MachoMenuGetSelectedPlayer()
+    if targetId and targetId > 0 then
+        -- الحقن في ريسورس موثوق
+        MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
+            local function HijackVehicle()
+                local tid = %d
+                
+                -- تعريف الأوامر بأسلوبك اللي يشتغل
+                local _GPP = GetPlayerPed
+                local _GVPI = GetVehiclePedIsIn
+                local _PPI = PlayerPedId
+                local _SVED = SetVehicleExclusiveDriver_2
+                local _SPIV = SetPedIntoVehicle
+                local _RCE = NetworkRequestControlOfEntity
 
-                local targetPed = oXyBkVsNzQuH(kJfHuGtFrDeSwQa)
-                local veh = yZaSdFgHjKlQ(targetPed, 0)
+                local tPed = _GPP(tid)
+                local veh = _GVPI(tPed, false)
 
-                local function nMzXcVbNmQwErTy(func, ...)
-                    local _print = print
-                    local function errorHandler(ex)
-                        -- _print("SCRIPT ERROR: " .. ex)
-                    end
-
-                    local argsStr = ""
-                    for _, v in ipairs({...}) do
-                        if type(v) == "string" then
-                            argsStr = argsStr .. "\"" .. v .. "\", "
-                        elseif type(v) == "number" or type(v) == "boolean" then
-                            argsStr = argsStr .. tostring(v) .. ", "
-                        else
-                            argsStr = argsStr .. tostring(v) .. ", "
-                        end
-                    end
-                    argsStr = argsStr:sub(1, -3)
-
-                    local script = string.format("return func(%%s)", argsStr)
-                    local fn, err = load(script, "@pipboy.lua", "t", { func = func })
-                    if not fn then
-                        -- _print("Error loading script: " .. err)
-                        return nil
-                    end
-
-                    local success, result = xpcall(function() return fn() end, errorHandler)
-                    if not success then
-                        -- _print("Error executing script: " .. result)
-                        return nil
-                    else
-                        return result
-                    end
-                end
-
-                if veh ~= 0 then
-                    Wait(100)
-                    nMzXcVbNmQwErTy(cVbNmQwErTyUiOp, veh, wQeRtYuIoPlMn(), 1)
-                    ghjawrusdgddsaf(wQeRtYuIoPlMn(), veh, -1)
+                if veh and veh ~= 0 then
+                    -- طلب السيطرة على المركبة أولاً لضمان نجاح الطرد
+                    _RCE(veh)
                     
-                    Wait(100)
-                    nMzXcVbNmQwErTy(cVbNmQwErTyUiOp, veh, 0, 0)
+                    -- جعل نفسك السائق الحصري (هذا يطرد اللاعب فوراً)
+                    _SVED(veh, _PPI(), 1)
+                    
+                    -- نقلك لمقعد السائق
+                    _SPIV(_PPI(), veh, -1)
+                    
+                    -- تأخير بسيط ثم إلغاء الحصرية لكي تستطيع القيادة بحرية
+                    Wait(200)
+                    _SVED(veh, 0, 0)
                 end
             end
 
-            GhJkUiOpLzXcVbNm()
-        ]]):format(FtZpLaWcVyXbMn))
+            HijackVehicle()
+        ]]):format(targetId))
     end
 end)
 
