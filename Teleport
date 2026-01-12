@@ -846,7 +846,7 @@ end)
 MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
     MachoInjectResource((CheckResource("core") and "core") or (CheckResource("es_extended") and "es_extended") or (CheckResource("qb-core") and "qb-core") or (CheckResource("monitor") and "monitor") or "any", [[
         
-        x_local_state_01 = false
+        g_FreecamFeatureEnabled = true
         
         local function initializeFreecam()
             -- Script State
@@ -862,7 +862,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
             local stopFreecam, startFreecam
 
             -- Feature Definitions (Now with Ped Spawner)
-            l local Features = { 
+            local Features = { 
                 "Look-Around", 
                 "Spawn Ped",         -- ADDED
                 "Teleport", 
@@ -873,7 +873,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
                 "Teleport Vehicle",
                 "Mess With Vehicle"
             }
-            
+
             -- Helper Function for Drawing Text
             local function drawText(content, x, y, options)
                 SetTextFont(options.font or 4)
@@ -931,34 +931,70 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
                     Wait(0)
                     if IsDisabledControlJustPressed(0, 241) then currentFeatureIndex = (currentFeatureIndex - 2 + #Features) % #Features + 1 elseif IsDisabledControlJustPressed(0, 242) then currentFeatureIndex = (currentFeatureIndex % #Features) + 1 end
                     
-                    if IsDisabledControlJustPressed(0, 24) then -- عند الضغط على زر التفاعل (غالباً كليك يسار)
-    local currentFeature = Features[currentFeatureIndex]
-    
-    -- أبقينا فقط ميزة الانتقال
-    if currentFeature == "Teleport" and targetCoords then
-        local ped = PlayerPedId()
-        
-        -- الحصول على ارتفاع الأرض بدقة لضمان عدم السقوط تحت الخريطة
-        local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, false)
-        
-        -- تنفيذ الانتقال إلى إحداثيات الكاميرا
-        SetEntityCoords(ped, targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z, false, false, false, true)
-        
-        -- اختياري: إرسال إشعار بسيط للتأكيد
-        -- MachoMenuNotification("[INFO]", "تم الانتقال بنجاح")
-    end
-endend
+                    if IsDisabledControlJustPressed(0, 24) then -- Action Key Pressed
+                        local currentFeature = Features[currentFeatureIndex]
+                        if currentFeature == "Teleport" and targetCoords then
+                            local ped = PlayerPedId()
+                            local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, false)
+                            SetEntityCoords(ped, targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z, false, false, false, true)
+                        -- ##### NEW FEATURE: SAFE PED SPAWNER LOGIC #####
+                        elseif currentFeature == "Spawn Ped" and targetCoords then
+                            local model = pedsToSpawn[currentPedIndex]
+                            CreateThread(function()
+                                local modelHash = GetHashKey(model)
+                                RequestModel(modelHash)
+                                local timeout = 2000 -- 2 second timeout for model loading
+                                while not HasModelLoaded(modelHash) and timeout > 0 do
+                                    Wait(100)
+                                    timeout = timeout - 100
+                                end
+                                if HasModelLoaded(modelHash) then
+                                    local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z, false)
+                                    local spawnPos = vector3(targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z)
+                                    local newPed = CreatePed(4, modelHash, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, true, true)
+                                    SetModelAsNoLongerNeeded(modelHash)
+                                    TaskStandStill(newPed, -1) -- Make them stand still
+                                    currentPedIndex = (currentPedIndex % #pedsToSpawn) + 1 -- Cycle to the next ped for next time
+                                end
+                            end)
+                        elseif currentFeature == "Delete Entity" and targetEntity and DoesEntityExist(targetEntity) then
+                            SetEntityAsMissionEntity(targetEntity, true, true)
+                            DeleteEntity(targetEntity)
+                        elseif currentFeature == "Fling Entity" and targetEntity and (IsEntityAPed(targetEntity) or IsEntityAVehicle(targetEntity)) then
+                            ApplyForceToEntity(targetEntity, 1, math.random(-50.0, 50.0), math.random(-50.0, 50.0), 50.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
+                        elseif currentFeature == "Flip Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            SetVehicleOnGroundProperly(targetEntity)
+                        elseif currentFeature == "Launch Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            ApplyForceToEntity(targetEntity, 1, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
+                        elseif currentFeature == "Teleport Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            local currentCoords = GetEntityCoords(targetEntity)
+                            local newCoords = currentCoords + GetEntityForwardVector(targetEntity) * 5.0 + vector3(0.0, 0.0, 50.0)
+                            SetEntityCoords(targetEntity, newCoords.x, newCoords.y, newCoords.z, false, false, false, true)
+                        elseif currentFeature == "Mess With Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            local actions = {
+                                function(veh) SetVehicleTyreBurst(veh, math.random(0, 5), false, 1000.0) end,
+                                function(veh) SetVehicleDoorOpen(veh, math.random(0, 5), false, false) end,
+                                function(veh) SetVehicleEngineOn(veh, not IsVehicleEngineOn(veh), false, true) end,
+                                function(veh) SetVehicleLights(veh, math.random(0, 2)) end,
+                                function(veh) StartVehicleHorn(veh, 1000, "HELDDOWN", false) end
+                            }
+                            local randomAction = actions[math.random(#actions)]
+                            randomAction(targetEntity)
+                        end
+                    end
+                end
+            end
 
             -- Main Camera Movement Thread (Unchanged)
             local function cameraThread()
-                local baseSpeed, boostSpeed, slowSpeed = 0.5, 3.0, 0.1; local mouseSensitivity = 7.5; local function clamp(val, min, max) return math.max(min, math.min(max, val)) end; local function rotToDir(rot) local rX, rZ = math.rad(rot.x), math.rad(rot.z); return vector3(-math.sin(rZ)*math.cos(rX), math.cos(rZ)*math.cos(rX), math.sin(rX)) end;
+                local baseSpeed, boostSpeed, slowSpeed = 1.0, 9.0, 0.1; local mouseSensitivity = 7.5; local function clamp(val, min, max) return math.max(min, math.min(max, val)) end; local function rotToDir(rot) local rX, rZ = math.rad(rot.x), math.rad(rot.z); return vector3(-math.sin(rZ)*math.cos(rX), math.cos(rZ)*math.cos(rX), math.sin(rX)) end;
                 while isFreecamActive do
                     Wait(0)
                     local camPos, camRotRaw = GetCamCoord(freecamHandle), GetCamRot(freecamHandle, 2); local camRot = { x = camRotRaw.x, y = camRotRaw.y, z = camRotRaw.z }; local direction = rotToDir(camRot); local right = vector3(direction.y, -direction.x, 0)
                     local speed = baseSpeed; if IsDisabledControlPressed(0, 21) then speed = boostSpeed end; if IsDisabledControlPressed(0, 19) then speed = slowSpeed end
                     if IsDisabledControlPressed(0, 32) then camPos = camPos + direction * speed end; if IsDisabledControlPressed(0, 33) then camPos = camPos - direction * speed end; if IsDisabledControlPressed(0, 34) then camPos = camPos - right * speed end; if IsDisabledControlPressed(0, 35) then camPos = camPos + right * speed end; if IsDisabledControlPressed(0, 22) then camPos = camPos + vector3(0, 0, 1.0) * speed end; if IsDisabledControlPressed(0, 36) then camPos = camPos - vector3(0, 0, 1.0) * speed end
                     local mX, mY = GetControlNormal(0,1)*mouseSensitivity, GetControlNormal(0,2)*mouseSensitivity; camRot.x = clamp(camRot.x-mY, -89.0, 89.0); camRot.z = camRot.z-mX
-                    SetCamCoord(freecamHandle, camPos.x, camPos.y, camPos.z); SetCamRot(freecamHandle, camRot.x, camRot.y, camRot.z, 2); 
+                    SetCamCoord(freecamHandle, camPos.x, camPos.y, camPos.z); SetCamRot(freecamHandle, camRot.x, camRot.y, camRot.z, 2); SetFocusPosAndVel(camPos.x, camPos.y, camPos.z, 0.0, 0.0, 0.0)
                     local ray = StartShapeTestRay(camPos.x, camPos.y, camPos.z, camPos.x+direction.x*1000.0, camPos.y+direction.y*1000.0, camPos.z+direction.z*1000.0, -1, PlayerPedId(), 7); local _, hit, coords, _, entity = GetShapeTestResult(ray); if hit then targetCoords, targetEntity = coords, entity else targetCoords, targetEntity = nil, nil end
                 end
             end
@@ -987,7 +1023,7 @@ endend
             end
             
             CreateThread(function()
-                while x_local_state_01 and not Unloaded do Wait(0)
+                while g_FreecamFeatureEnabled and not Unloaded do Wait(0)
                     if IsDisabledControlJustPressed(0, 74) then -- H key
                         if isFreecamActive then stopFreecam()
                         else startFreecam() end
@@ -1000,11 +1036,158 @@ endend
     ]])
 end, function()
     MachoInjectResource((CheckResource("core") and "core") or (CheckResource("es_extended") and "es_extended") or (CheckResource("qb-core") and "qb-core") or (CheckResource("monitor") and "monitor") or "any", [[
-        x_local_state_01 = false
+        g_FreecamFeatureEnabled = false
         if isFreecamActive and stopFreecam then stopFreecam() end
     ]])
 end)
 
+MachoMenuCheckbox(PlayerTabSections[1], "Super Jump", function()
+    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
+        if xCvBnMqWeRtYuIo == nil then xCvBnMqWeRtYuIo = false end
+        xCvBnMqWeRtYuIo = true
+
+        local function JcWT5vYEq1()
+            local yLkPwOiUtReAzXc = CreateThread
+            yLkPwOiUtReAzXc(function()
+                while xCvBnMqWeRtYuIo and not Unloaded do
+                    local hGfDsAzXcVbNmQw = SetSuperJumpThisFrame
+                    local eRtYuIoPaSdFgHj = PlayerPedId()
+                    local oPlMnBvCxZlKjHg = PlayerId()
+
+                    hGfDsAzXcVbNmQw(oPlMnBvCxZlKjHg)
+                    Wait(0)
+                end
+            end)
+        end
+
+        JcWT5vYEq1()
+    ]])
+end, function()
+    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
+        xCvBnMqWeRtYuIo = false
+    ]])
+end)
+
+MachoMenuCheckbox(PlayerTabSections[1], "Levitation", function()
+    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
+        -- make helpers global so other chunks can use them
+        function ScaleVector(vect, mult)
+            return vector3(vect.x * mult, vect.y * mult, vect.z * mult)
+        end
+
+        function AddVectors(vect1, vect2)
+            return vector3(vect1.x + vect2.x, vect1.y + vect2.y, vect1.z + vect2.z)
+        end
+
+        function ApplyForce(entity, direction)
+            local XroXTNEFqxoWfH = ApplyForceToEntity
+            XroXTNEFqxoWfH(entity, 3, direction, 0, 0, 0, false, false, true, true, false, true)
+        end
+
+        function SubVectors(vect1, vect2)
+            return vector3(vect1.x - vect2.x, vect1.y - vect2.y, vect1.z - vect2.z)
+        end
+
+        function Oscillate(entity, position, angleFreq, dampRatio)
+            local OBaTQqteIpmZVo = GetEntityVelocity
+            local pos1 = ScaleVector(SubVectors(position, GetEntityCoords(entity)), (angleFreq * angleFreq))
+            local pos2 = AddVectors(ScaleVector(OBaTQqteIpmZVo(entity), (2.0 * angleFreq * dampRatio)), vector3(0.0, 0.0, 0.1))
+            local targetPos = SubVectors(pos1, pos2)
+            ApplyForce(entity, targetPos)
+        end
+
+        function RotationToDirection(rot)
+            local radZ = math.rad(rot.z)
+            local radX = math.rad(rot.x)
+            local cosX = math.cos(radX)
+            return vector3(
+                -math.sin(radZ) * cosX,
+                math.cos(radZ) * cosX,
+                math.sin(radX)
+            )
+        end
+
+        function GetClosestCoordOnLine(startCoords, endCoords, entity)
+            local CDGcdMQhosGVCf = GetShapeTestResult
+            local UaWIFHgeizhHua = StartShapeTestRay
+            local result, hit, hitCoords, surfaceNormal, entityHit =
+                CDGcdMQhosGVCf(UaWIFHgeizhHua(startCoords.x, startCoords.y, startCoords.z, endCoords.x, endCoords.y, endCoords.z, -1, entity, 0))
+            return hit == 1, hitCoords
+        end
+
+        function GetCameraLookingAtCoord(distance)
+            local playerPed = PlayerPedId()
+            local camRot = GetGameplayCamRot(2)
+            local camCoord = GetGameplayCamCoord()
+            local forwardVector = RotationToDirection(camRot)
+            local destination = vector3(
+                camCoord.x + forwardVector.x * distance,
+                camCoord.y + forwardVector.y * distance,
+                camCoord.z + forwardVector.z * distance
+            )
+            local hit, endCoords = GetClosestCoordOnLine(camCoord, destination, playerPed)
+            if hit then return endCoords else return destination end
+        end
+    ]])
+
+    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
+        local function awfjawr57awt7f()
+            nxtBFlQWMMeRLs = true
+
+            local jIiIfikctHYrlH = CreateThread
+            jIiIfikctHYrlH(function()
+                while nxtBFlQWMMeRLs and not Unloaded do
+                    Wait(0)
+                    local ped = PlayerPedId()
+
+                    local SZxuJlyJQmGlZz = SetPedCanRagdoll
+                    local valuOZfymjeVaH = IsEntityPlayingAnim
+                    local IiHiLVRagMQhrn = RequestAnimDict
+                    local mOZOquvggdnbod = HasAnimDictLoaded
+                    local UFZdrZNXpLwpjT = TaskPlayAnim
+                    local cQPIZtKyyWaVcY = GetCameraLookingAtCoord
+                    local OyvuuAMyvjtIzD = GetGameplayCamRot
+                    local XKWvPIkCKMXIfR = IsDisabledControlPressed  -- FIXED: missing '='
+
+                    while XKWvPIkCKMXIfR(0, 22) do
+                        SZxuJlyJQmGlZz(ped, false)
+
+                        if not valuOZfymjeVaH(ped, "oddjobs@assassinate@construction@", "unarmed_fold_arms", 3) then
+                            IiHiLVRagMQhrn("oddjobs@assassinate@construction@")
+                            while not mOZOquvggdnbod("oddjobs@assassinate@construction@") do
+                                Wait(0)
+                            end
+                            UFZdrZNXpLwpjT(ped, "oddjobs@assassinate@construction@", "unarmed_fold_arms",
+                                8.0, -8.0, -1, 49, 0, false, false, false)
+                        end
+
+                        local camRot = OyvuuAMyvjtIzD(2)
+                        local camHeading = (camRot.z + 360) % 360
+                        local direction = cQPIZtKyyWaVcY(77)
+
+                        SetEntityHeading(ped, camHeading)
+                        Oscillate(ped, direction, 0.33, 0.9)
+
+                        Wait(1)
+                    end
+
+                    if valuOZfymjeVaH(ped, "oddjobs@assassinate@construction@", "unarmed_fold_arms", 3) then
+                        ClearPedTasks(ped)
+                    end
+
+                    SZxuJlyJQmGlZz(ped, true)
+                end
+            end)
+        end
+
+        awfjawr57awt7f()
+    ]])
+end, function()
+    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
+        nxtBFlQWMMeRLs = false
+        ClearPedTasks(PlayerPedId())
+    ]])
+end)
 
 MachoMenuCheckbox(PlayerTabSections[1], "Super Strength", function()
     MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
