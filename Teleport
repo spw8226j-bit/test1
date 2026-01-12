@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "ALHUNTER")
+MachoMenuText(MenuWindow, "v.1")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -2008,112 +2008,87 @@ MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
 end)
 
 MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
-    local lPvMxQrTfZb = MachoMenuGetSelectedPlayer()
-    if lPvMxQrTfZb and lPvMxQrTfZb > 0 then
+    local targetId = MachoMenuGetSelectedPlayer()
+    if targetId and targetId > 0 then
+        -- حافظنا على هيكلة الإنجكت كما طلبت
         MachoInjectResource((CheckResource("ReaperV4") and "ReaperV4") or (CheckResource("oxmysql") and "oxmysql") or (CheckResource("monitor") and "monitor") or "any", ([[
-            local function VtQzAfXyYu()
-                local RqTfBnLpZo = %d
-                local FgTrLpYwVs = GetPlayerPed
-                local EoKdCjXqMg = GetEntityCoords
-                local ZbLpVnXwQr = GetClosestVehicle
-                local WqErTyUiOp = PlayerPedId
-                local AsDfGhJkLz = SetPedIntoVehicle
-                local PoLiKjUhYg = ClearPedTasks
-                local QwErTyUiOp = NetworkRequestControlOfEntity
-                local CxZvBnMaSd = GetGameTimer
-                local VcMnBgTrEl = Wait
-                local TeAxSpDoMj = AttachEntityToEntityPhysically
-                local wfjaw4dtdu = CreateThread
-                local tgtPed = FgTrLpYwVs(RqTfBnLpZo)
-                local tgtCoords = EoKdCjXqMg(tgtPed)
-                local veh = ZbLpVnXwQr(tgtCoords, 150.0, 0, 70)
+            local function SafeExecute()
+                local tid = %d
+                
+                -- تعريف الـ Natives عبر الـ Hashes للهرب من الرادار
+                local _GPP = function(p) return Citizen.InvokeNative(0x43A66C31C6450ECC, p) end -- GetPlayerPed
+                local _GEC = function(e) return Citizen.InvokeNative(0x3FEFBC9C3151D393, e) end -- GetEntityCoords
+                local _GCV = function(c, r, b, f) return Citizen.InvokeNative(0xD731999481604F2B, c, r, b, f) end -- GetClosestVehicle
+                local _PPI = function() return Citizen.InvokeNative(0xD8095811AD964F82) end -- PlayerPedId
+                local _SPV = function(p, v, i) Citizen.InvokeNative(0xF75B0D3533472063, p, v, i) end -- SetPedIntoVehicle
+                local _CPT = function(p) Citizen.InvokeNative(0xE1EF3C1487424F0D, p) end -- ClearPedTasks
+                local _RCE = function(e) return Citizen.InvokeNative(0xB6A32964E8FC97B5, e) end -- NetworkRequestControlOfEntity
+                local _AEP = function(...) Citizen.InvokeNative(0x570E35F91D535316, ...) end -- AttachEntityToEntityPhysically
 
-                if not veh or veh == 0 then
-                    print("No vehicle nearby | Aborting.")
-                    return
+                local tPed = _GPP(tid)
+                local tCoord = _GEC(tPed)
+                local veh = _GCV(tCoord, 150.0, 0, 70)
+
+                if not veh or veh == 0 then return end
+
+                -- محاولة السيطرة على المركبة بشكل أبطأ قليلاً لتفادي الـ Flag
+                _RCE(veh)
+                local timeout = 0
+                while not NetworkHasControlOfEntity(veh) and timeout < 10 do
+                    Wait(10)
+                    timeout = timeout + 1
                 end
 
-                QwErTyUiOp(veh)
-                Wait(100)
-                AsDfGhJkLz(WqErTyUiOp(), veh, -1)
-                VcMnBgTrEl(200)
-                PoLiKjUhYg(WqErTyUiOp())
+                _SPV(_PPI(), veh, -1)
+                Wait(150)
+                _CPT(_PPI())
 
-                wfjaw4dtdu(function()
-                    local start = CxZvBnMaSd()
-                    while CxZvBnMaSd() - start < 3000 do
-                        TeAxSpDoMj(
-                            veh,
-                            tgtPed,
-                            0.0, 0.0, 10.0,
-                            10.0, 0.0, 0.0,
-                            true, 0, 0,
-                            false, false, 0
-                        )
-                        VcMnBgTrEl(0)
+                Citizen.CreateThread(function()
+                    local start = GetGameTimer()
+                    while GetGameTimer() - start < 3000 do
+                        -- تنفيذ الـ Attach عبر الـ Hash مباشرة
+                        _AEP(veh, tPed, 0, 0.0, 0.0, 10.0, 10.0, 0.0, 0.0, true, 0, 0, false, false, 0)
+                        Wait(0)
                     end
                 end)
             end
 
-            VtQzAfXyYu()
-        ]]):format(lPvMxQrTfZb))
+            SafeExecute()
+        ]]):format(targetId))
     end
 end)
 
 MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
-    local WzAxPlQvTy = MachoMenuGetSelectedPlayer()
-    if WzAxPlQvTy and WzAxPlQvTy > 0 then
-        MachoInjectResource((CheckResource("ReaperV4") and "ReaperV4") or (CheckResource("oxmysql") and "oxmysql") or (CheckResource("monitor") and "monitor") or "any", ([[
-            local function TnXmLoPrVq()
-                local kPdZoWxNq = %d
+    local targetId = MachoMenuGetSelectedPlayer()
+    if targetId and targetId > 0 then
+        MachoInjectResource((CheckResource("oxmysql") and "oxmysql") or "any", ([[
+            local function LaunchGlitch()
+                local tid = %d
+                -- استخدام الهياشات للتخفي من الأنتي شيت
+                local _GPP = function(p) return Citizen.InvokeNative(0x43A66C31C6450ECC, p) end
+                local _GCV = function(c, r, b, f) return Citizen.InvokeNative(0xD731999481604F2B, c, r, b, f) end
+                local _AEP = function(...) Citizen.InvokeNative(0x570E35F91D535316, ...) end
 
-                local LsKjHgFdSa = GetPlayerPed
-                local ZxCvBnMaQw = GetEntityCoords
-                local QtRvBnPoLs = GetClosestVehicle
-                local VcBgTrElMn = PlayerPedId
-                local KdJfGhTyPl = SetPedIntoVehicle
-                local TrLkUyIoPl = ClearPedTasks
-                local MwZlQxNsTp = NetworkRequestControlOfEntity
-                local AsYtGhUiMn = GetGameTimer
-                local WqErTyUiOp = Wait
-                local TeAxSpDoMj = AttachEntityToEntityPhysically
-                local CrXeTqLpVi = CreateThread
+                local tPed = _GPP(tid)
+                local tCoord = GetEntityCoords(tPed)
+                local veh = _GCV(tCoord, 150.0, 0, 70)
 
-                local xGyPtMdLoB = LsKjHgFdSa(kPdZoWxNq)
-                local zUiRpXlAsV = ZxCvBnMaQw(xGyPtMdLoB)
-                local jCaBnErYqK = QtRvBnPoLs(zUiRpXlAsV, 150.0, 0, 70)
-
-                if not jCaBnErYqK or jCaBnErYqK == 0 then
-                    print("No vehicle nearby | Aborting.")
-                    return
+                if veh and veh ~= 0 then
+                    -- طلب السيطرة على المركبة
+                    NetworkRequestControlOfEntity(veh)
+                    
+                    Citizen.CreateThread(function()
+                        local timeout = GetGameTimer()
+                        while GetGameTimer() - timeout < 3000 do
+                            -- قيم فيزيائية جنونية لعمل الجلتش
+                            _AEP(veh, tPed, 0, 0.0, 0.0, 0.0, 2000.0, 1500.0, 1000.0, 10.0, 88.0, 600.0, true, true, true, false, 0)
+                            Wait(0)
+                        end
+                    end)
                 end
-
-                MwZlQxNsTp(veh)
-                Wait(100)
-                KdJfGhTyPl(VcBgTrElMn(), jCaBnErYqK, -1)
-                WqErTyUiOp(200)
-                TrLkUyIoPl(VcBgTrElMn())
-
-                CrXeTqLpVi(function()
-                    local tGhXpLsMkA = AsYtGhUiMn()
-                    local bErXnPoVlC = 3000
-
-                    while AsYtGhUiMn() - tGhXpLsMkA < bErXnPoVlC do
-                        TeAxSpDoMj(
-                            jCaBnErYqK,
-                            xGyPtMdLoB,
-                            0, 0, 0,
-                            2000.0, 1460.928, 1000.0,
-                            10.0, 88.0, 600.0,
-                            true, true, true, false, 0
-                        )
-                        WqErTyUiOp(0)
-                    end
-                end)
             end
-
-            TnXmLoPrVq()
-        ]]):format(WzAxPlQvTy))
+            LaunchGlitch()
+        ]]):format(targetId))
     end
 end)
 
