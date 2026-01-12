@@ -1964,37 +1964,36 @@ MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
 end)
 
 
-MachoMenuButton(ServerTabSections[1], "Freeze Player (V3)", function()
-    local targetID = MachoMenuGetSelectedPlayer()
+MachoMenuButton(ServerTabSections[1], "Freeze Target Only", function()
+    local targetID = MachoMenuGetSelectedPlayer() -- هذا الـ ID اللي اخترته من القائمة
     if targetID and targetID > 0 then
-        -- هذه الدالة تبحث عن أي سورس شغال وتحقن فيه
-        local targetResource = "any" 
-        if GetResourceState("oxmysql") == "started" then targetResource = "oxmysql"
-        elseif GetResourceState("monitor") == "started" then targetResource = "monitor"
-        elseif GetResourceState("qb-core") == "started" then targetResource = "qb-core"
-        end
-
-        MachoInjectResource(targetResource, ([[
-            local targetID = %d
-            local player = GetPlayerFromServerId(targetID)
-            local ped = GetPlayerPed(player)
+        -- الحقن للتمويه
+        MachoInjectResource("oxmysql", ([[
+            local targetServerID = %d
             
-            if DoesEntityExist(ped) then
-                -- طلب التحكم بالشبكة
-                NetworkRequestControlOfEntity(ped)
-                
-                -- التجميد المباشر
-                FreezeEntityPosition(ped, true)
-                
-                -- إيقاف أي حركة يحاول يسويها
-                ClearPedTasksImmediately(ped)
-                
-                -- وضع اللاعب في حالة "تثبيت" (اختياري)
-                SetEntityInvincible(ped, true) -- عشان ما يموت وهو مجمد
+            -- نبحث عن اللاعب في قائمة اللاعبين النشطين عند الجميع
+            local players = GetActivePlayers()
+            for _, player in ipairs(players) do
+                if GetPlayerServerId(player) == targetServerID then
+                    local targetPed = GetPlayerPed(player)
+                    
+                    if DoesEntityExist(targetPed) then
+                        -- نطلب التحكم للتأكد من التنفيذ
+                        NetworkRequestControlOfEntity(targetPed)
+                        
+                        -- التجميد (هنا جمدنا هدفنا فقط)
+                        FreezeEntityPosition(targetPed, true)
+                        
+                        -- تنظيف مهامه عشان يثبت في مكانه
+                        ClearPedTasksImmediately(targetPed)
+                    end
+                    break
+                end
             end
         ]]):format(targetID))
     end
 end)
+
 
 MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
     local WzAxPlQvTy = MachoMenuGetSelectedPlayer()
