@@ -34,12 +34,7 @@
 --jiggy* NO NO NO! X9 on top puss ah niggas
 --jiggy* NO NO NO! X9 on top puss ah niggas
 
---local KeysBin = MachoWebRequest("https://raw.githubusercontent.com/bv3d05/skgjfd/refs/heads/main/README.md")
---local CurrentKey = MachoAuthenticationKey()
---if not string.find(KeysBin, CurrentKey, 1, true) then
-   --MachoMenuNotification("Authentication Failed", "Your key is not authorized.")
-  --return
---end
+
 
 
 
