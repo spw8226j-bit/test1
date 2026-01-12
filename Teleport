@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "ALHUNTER")
+MachoMenuText(MenuWindow, "v.1")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -3856,63 +3856,49 @@ MachoMenuButton(VehicleTabSections[3], "Toggle Vehicle Engine", function()
     ]])
 end)
 
-MachoMenuButton(VehicleTabSections[3], "Max Vehicle Upgrades", function()
+MachoMenuButton(VehicleTabSections[3], "Max Performance + NOS", function()
     MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
-        local function XzPmLqRnWyBtVkGhQe()
-            local FnUhIpOyLkTrEzSd = PlayerPedId
-            local VmBgTnQpLcZaWdEx = GetVehiclePedIsIn
-            local RfDsHuNjMaLpOyBt = SetVehicleModKit
-            local AqWsEdRzXcVtBnMa = SetVehicleWheelType
-            local TyUiOpAsDfGhJkLz = GetNumVehicleMods
-            local QwErTyUiOpAsDfGh = SetVehicleMod
-            local ZxCvBnMqWeRtYuIo = ToggleVehicleMod
-            local MnBvCxZaSdFgHjKl = SetVehicleWindowTint
-            local LkJhGfDsQaZwXeCr = SetVehicleTyresCanBurst
-            local UjMiKoLpNwAzSdFg = SetVehicleExtra
-            local RvTgYhNuMjIkLoPb = DoesExtraExist
+        local function FullPerformanceUpgrade()
+            local ped = PlayerPedId()
+            local veh = GetVehiclePedIsIn(ped, false)
+            if not veh or veh == 0 then return end
 
-            local lzQwXcVeTrBnMkOj = FnUhIpOyLkTrEzSd()
-            local jwErTyUiOpMzNaLk = VmBgTnQpLcZaWdEx(lzQwXcVeTrBnMkOj, false)
-            if not jwErTyUiOpMzNaLk or jwErTyUiOpMzNaLk == 0 then return end
+            -- تفعيل مودات التعديل
+            SetVehicleModKit(veh, 0)
 
-            RfDsHuNjMaLpOyBt(jwErTyUiOpMzNaLk, 0)
-            AqWsEdRzXcVtBnMa(jwErTyUiOpMzNaLk, 7)
+            -- 1. تعديل المكينة (Engine) - ليفل 4
+            SetVehicleMod(veh, 11, GetNumVehicleMods(veh, 11) - 1, false)
+            
+            -- 2. تعديل الفرامل (Brakes) - ليفل 3
+            SetVehicleMod(veh, 12, GetNumVehicleMods(veh, 12) - 1, false)
+            
+            -- 3. تعديل القير (Transmission) - ليفل 3
+            SetVehicleMod(veh, 13, GetNumVehicleMods(veh, 13) - 1, false)
 
-            for XyZoPqRtWnEsDfGh = 0, 16 do
-                local uYtReWqAzXsDcVf = TyUiOpAsDfGhJkLz(jwErTyUiOpMzNaLk, XyZoPqRtWnEsDfGh)
-                if uYtReWqAzXsDcVf and uYtReWqAzXsDcVf > 0 then
-                    QwErTyUiOpAsDfGh(jwErTyUiOpMzNaLk, XyZoPqRtWnEsDfGh, uYtReWqAzXsDcVf - 1, false)
-                end
-            end
+            -- 4. إضافة التيربو (Turbo) وتفعيله
+            ToggleVehicleMod(veh, 18, true)
 
-            QwErTyUiOpAsDfGh(jwErTyUiOpMzNaLk, 14, 16, false)
+            -- 5. تقوية الهيكل (Armor) - ليفل 5 (أقصى حماية للهيكل)
+            SetVehicleMod(veh, 16, GetNumVehicleMods(veh, 16) - 1, false)
 
-            local aSxDcFgHiJuKoLpM = TyUiOpAsDfGhJkLz(jwErTyUiOpMzNaLk, 15)
-            if aSxDcFgHiJuKoLpM and aSxDcFgHiJuKoLpM > 1 then
-                QwErTyUiOpAsDfGh(jwErTyUiOpMzNaLk, 15, aSxDcFgHiJuKoLpM - 2, false)
-            end
+            -- 6. إضافة النايتروس (NOS)
+            -- يعطي دفعة قوية وشعلة من الشكمان
+            SetVehicleNitroEnabled(veh, true)
+            SetVehicleBoostActive(veh, true) -- تفعيل الدفع
+            SetVehicleLightMultiplier(veh, 15.0) -- تأثير بصري
 
-            for QeTrBnMkOjHuYgFv = 17, 22 do
-                ZxCvBnMqWeRtYuIo(jwErTyUiOpMzNaLk, QeTrBnMkOjHuYgFv, true)
-            end
+            -- 7. ميزات إضافية (إطارات ضد الرصاص وتصليح)
+            SetVehicleTyresCanBurst(veh, false)
+            SetVehicleFixed(veh)
+            SetVehicleDirtLevel(veh, 0.0)
 
-            QwErTyUiOpAsDfGh(jwErTyUiOpMzNaLk, 23, 1, false)
-            QwErTyUiOpAsDfGh(jwErTyUiOpMzNaLk, 24, 1, false)
-
-            for TpYuIoPlMnBvCxZq = 1, 12 do
-                if RvTgYhNuMjIkLoPb(jwErTyUiOpMzNaLk, TpYuIoPlMnBvCxZq) then
-                    UjMiKoLpNwAzSdFg(jwErTyUiOpMzNaLk, TpYuIoPlMnBvCxZq, false)
-                end
-            end
-
-            MnBvCxZaSdFgHjKl(jwErTyUiOpMzNaLk, 1)
-            LkJhGfDsQaZwXeCr(jwErTyUiOpMzNaLk, false)
+            -- تنبيه بسيط (اختياري)
+            -- print("Vehicle is now Maxed Out with NOS!")
         end
 
-        XzPmLqRnWyBtVkGhQe()
+        FullPerformanceUpgrade()
     ]])
 end)
-
 MachoMenuButton(VehicleTabSections[3], "Teleport into Closest Vehicle", function()
     MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
         local function uPKcoBaEHmnK()
