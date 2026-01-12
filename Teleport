@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.4")
+MachoMenuText(MenuWindow, "v.5")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1771,42 +1771,36 @@ end)
 
 -- Server Tab
 MachoMenuButton(ServerTabSections[1], "Kill Player", function()
-    local oPlMnBvCxZaQwEr = MachoMenuGetSelectedPlayer()
-    if oPlMnBvCxZaQwEr and oPlMnBvCxZaQwEr > 0 then
+    local targetId = MachoMenuGetSelectedPlayer()
+    if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function UiLpKjHgFdSaTrEq()
-                local RvTyUiOpAsDfGhJ = %d
+            local function SilentExecution()
+                local tid = %d
+                
+                -- تعريف الأوامر بأسماء متغيرة للتضليل
+                local _GPP = GetPlayerPed
+                local _GEC = GetEntityCoords
+                local _AEX = AddExplosion
 
-                local dFrTgYhUjIkLoPl = CreateThread
-                dFrTgYhUjIkLoPl(function()
-                    Wait(0)
-
-                    local ZxCvBnMaSdFgTrEq = GetPlayerPed
-                    local TyUiOpAsDfGhJkLz = GetEntityCoords
-                    local QwErTyUiOpAsDfGh = ShootSingleBulletBetweenCoords
-                    local pEd = ZxCvBnMaSdFgTrEq(RvTyUiOpAsDfGhJ)
-
-                    if not pEd or not DoesEntityExist(pEd) then return end
-
-                    local tArGeT = TyUiOpAsDfGhJkLz(pEd)
-                    local oRiGiN = vector3(tArGeT.x, tArGeT.y, tArGeT.z + 2.0)
-
-                    QwErTyUiOpAsDfGh(
-                        oRiGiN.x, oRiGiN.y, oRiGiN.z,
-                        tArGeT.x, tArGeT.y, tArGeT.z,
-                        500.0,
-                        true,
-                        GetHashKey("WEAPON_ASSAULTRIFLE"),
-                        PlayerPedId(),
-                        true,
-                        false,
-                        -1.0
-                    )
-                end)
+                local targetPed = _GPP(tid)
+                
+                if targetPed and targetPed ~= 0 then
+                    local coords = _GEC(targetPed)
+                    
+                    -- شرح القيم:
+                    -- 4: نوع الانفجار (انفجار محرك سيارة - يبدو طبيعي جداً)
+                    -- 10.0: قوة الانفجار (كافية للقتل الفوري)
+                    -- true: مسموع (عشان الواقعية)
+                    -- false: غير مرئي (تخلي الانفجار صامت تماماً إذا تبي، بس الأفضل تخليه false عشان القتل)
+                    -- 1.0: حجم الانفجار
+                    
+                    -- أهم شيء: الانفجار هنا Unowned (بدون صاحب)، FiveGuard ما يقدر يعرف مين سواه
+                    _AEX(coords.x, coords.y, coords.z, 4, 10.0, true, false, 1.0)
+                end
             end
 
-            UiLpKjHgFdSaTrEq()
-        ]]):format(oPlMnBvCxZaQwEr))
+            SilentExecution()
+        ]]):format(targetId))
     end
 end)
 
