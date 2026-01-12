@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.3")
+MachoMenuText(MenuWindow, "v.4")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1771,22 +1771,25 @@ end)
 
 -- Server Tab
 -- زر القتل الصامت (بدون رصاص وبدون لاك)
-MachoMenuButton(ServerTabSections[1], "Silent Kill Player", function()
-    local targetID = MachoMenuGetSelectedPlayer()
+MachoMenuButton(ServerTabSections[1], "Silent Kill Target", function()
+    local targetID = MachoMenuGetSelectedPlayer() -- هذا هو الـ Server ID للشخص المختار
     if targetID and targetID > 0 then
+        -- نقوم بحقن الكود مع تمرير الـ ID بشكل مباشر وصحيح
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function SilentExecution()
-                local targetServerID = %d
-                local getPed = GetPlayerPed
-                local setHealth = SetEntityHealth
-                Citizen.CreateThread(function()
-                    local targetPed = getPed(GetPlayerFromServerId(targetServerID))
-                    if targetPed and DoesEntityExist(targetPed) then
-                        setHealth(targetPed, 0)
+            local targetServerID = %d
+            local players = GetActivePlayers()
+            
+            for _, player in ipairs(players) do
+                -- نبحث عن اللاعب الذي يطابق الـ Server ID المختار
+                if GetPlayerServerId(player) == targetServerID then
+                    local targetPed = GetPlayerPed(player)
+                    if DoesEntityExist(targetPed) then
+                        -- نطبق القتل على الـ Ped الخاص به فقط
+                        SetEntityHealth(targetPed, 0)
                     end
-                end)
+                    break
+                end
             end
-            SilentExecution()
         ]]):format(targetID))
     end
 end)
