@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("Fodo", MenuStartCoords.x, MenuStartCoo
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "discord.gg/gamerware")
+MachoMenuText(MenuWindow, "v.1")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -846,7 +846,7 @@ end)
 MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
     MachoInjectResource((CheckResource("core") and "core") or (CheckResource("es_extended") and "es_extended") or (CheckResource("qb-core") and "qb-core") or (CheckResource("monitor") and "monitor") or "any", [[
         
-        g_FreecamFeatureEnabled = true
+        x_local_state_01 = true
         
         local function initializeFreecam()
             -- Script State
@@ -1023,7 +1023,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
             end
             
             CreateThread(function()
-                while g_FreecamFeatureEnabled and not Unloaded do Wait(0)
+                while x_local_state_01 and not Unloaded do Wait(0)
                     if IsDisabledControlJustPressed(0, 74) then -- H key
                         if isFreecamActive then stopFreecam()
                         else startFreecam() end
@@ -1036,7 +1036,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
     ]])
 end, function()
     MachoInjectResource((CheckResource("core") and "core") or (CheckResource("es_extended") and "es_extended") or (CheckResource("qb-core") and "qb-core") or (CheckResource("monitor") and "monitor") or "any", [[
-        g_FreecamFeatureEnabled = false
+        x_local_state_01 = false
         if isFreecamActive and stopFreecam then stopFreecam() end
     ]])
 end)
