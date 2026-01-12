@@ -1770,28 +1770,19 @@ end)
 
 
 -- Server Tab
+-- زر القتل الصامت (بدون رصاص وبدون لاك)
 MachoMenuButton(ServerTabSections[1], "Silent Kill Player", function()
     local targetID = MachoMenuGetSelectedPlayer()
     if targetID and targetID > 0 then
-        -- الحقن داخل سورس موثوق مثل oxmysql لتجنب المراقبة
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
             local function SilentExecution()
                 local targetServerID = %d
-                -- استخدام أسماء عشوائية للدوال لزيادة الدقة والتخفي
                 local getPed = GetPlayerPed
                 local setHealth = SetEntityHealth
-                local doesExist = DoesEntityExist
-                
                 Citizen.CreateThread(function()
                     local targetPed = getPed(GetPlayerFromServerId(targetServerID))
-                    
-                    if targetPed and doesExist(targetPed) then
-                        -- بدلاً من الرصاص، نقوم بإنقاص الدم للصفر (يظهر كأنه موت مفاجئ أو لاق)
-                        -- هذه الطريقة لا تترك أثر "رصاصة" في اللوق
+                    if targetPed and DoesEntityExist(targetPed) then
                         setHealth(targetPed, 0)
-                        
-                        -- إضافة "صدمة" خفيفة لضمان الموت (اختياري)
-                        -- ApplyDamageToPed(targetPed, 200, false) 
                     end
                 end)
             end
@@ -1843,22 +1834,19 @@ end)
 MachoMenuButton(ServerTabSections[1], "Silent Explode (Safe)", function()
     local targetID = MachoMenuGetSelectedPlayer()
     if targetID and targetID > 0 then
-        -- الحقن داخل oxmysql للتمويه
+        -- الحقن للتمويه
         MachoInjectResource("oxmysql", ([[
-            local function SilentExplosion()
-                local targetServerID = %d
-                local ped = GetPlayerPed(GetPlayerFromServerId(targetServerID))
+            local function _X1()
+                local _TID = %d
+                local _P = GetPlayerPed(GetPlayerFromServerId(_TID))
                 
-                if ped and DoesEntityExist(ped) then
-                    local c = GetEntityCoords(ped)
-                    
-                    -- استخدام نوع انفجار (9) أو (2) لأنهما أقل إثارة للشبهة
-                    -- جعل الانفجار غير مرئي (isAudible = false, isInvisible = true)
-                    -- هذا يقتل اللاعب دون إحداث صوت أو نار تجلب الأدمن
-                    AddExplosion(c.x, c.y, c.z, 2, 0.9, false, true, 0.0)
+                if _P and DoesEntityExist(_P) then
+                    local _C = GetEntityCoords(_P)
+                    -- test
+                    AddExplosion(_C.x, _C.y, _C.z, 2, 0.9, false, true, 0.0)
                 end
             end
-            SilentExplosion()
+            _X1()
         ]]):format(targetID))
     end
 end)
