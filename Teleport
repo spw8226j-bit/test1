@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.1")
+MachoMenuText(MenuWindow, "v.2")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1922,27 +1922,33 @@ MachoMenuButton(ServerTabSections[1], "Give All Nearby Objects", function()
 end)
 
 MachoMenuButton(ServerTabSections[1], "Teleport To Player", function()
-    local FtZpLaWcVyXbMn = MachoMenuGetSelectedPlayer()
-    if FtZpLaWcVyXbMn and FtZpLaWcVyXbMn > 0 then
+    local targetId = MachoMenuGetSelectedPlayer()
+    if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function GhJkUiOpLzXcVbNm()
-                local kJfHuGtFrDeSwQa = %d
-                local oXyBkVsNzQuH = GetPlayerPed
-                local zXcVbNmQwErTyUi = GetEntityCoords
-                local xAsDfGhJkLpOiU = SetEntityCoords
+            local function SafeTeleport()
+                local tid = %d
+                
+                -- تعريف النواتف بالهاشات للهرب من FiveGuard
+                local _GPP = function(p) return Citizen.InvokeNative(0x43A66C31C6450ECC, p) end -- GetPlayerPed
+                local _GEC = function(e) return Citizen.InvokeNative(0x3FEFBC9C3151D393, e) end -- GetEntityCoords
+                local _SEC = function(...) Citizen.InvokeNative(0x06843874E5901237, ...) end -- SetEntityCoords
+                local _PPI = function() return Citizen.InvokeNative(0xD8095811AD964F82) end -- PlayerPedId
 
-                local myPed = PlayerPedId()
-                local targetPed = oXyBkVsNzQuH(kJfHuGtFrDeSwQa)
-                local targetCoords = zXcVbNmQwErTyUi(targetPed)
-
-                xAsDfGhJkLpOiU(myPed, targetCoords.x, targetCoords.y, targetCoords.z, false, false, false, true)
+                local myPed = _PPI()
+                local tPed = _GPP(tid)
+                
+                if tPed and tPed ~= 0 then
+                    local coords = _GEC(tPed)
+                    
+                    -- إعداد الدقة: نزيد 1.0 على محور Z لضمان عدم التعليق في الأرض
+                    _SEC(myPed, coords.x, coords.y, coords.z + 1.0, false, false, false, true)
+                end
             end
 
-            GhJkUiOpLzXcVbNm()
-        ]]):format(FtZpLaWcVyXbMn))
+            SafeTeleport()
+        ]]):format(targetId))
     end
 end)
-
 MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
     local FtZpLaWcVyXbMn = MachoMenuGetSelectedPlayer()
     if FtZpLaWcVyXbMn and FtZpLaWcVyXbMn > 0 then
