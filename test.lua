@@ -224,7 +224,7 @@ MachoMenuText(MenuWindow, "v.4")
 
 local PlayerTab = MachoMenuAddTab(MenuWindow, "Self")
 local ServerTab = MachoMenuAddTab(MenuWindow, "Server")
-local TeleportTab = MachoMenuAddTab(MenuWindow, "Teleport")
+local Tab = MachoMenuAddTab(MenuWindow, "")
 local WeaponTab = MachoMenuAddTab(MenuWindow, "Weapon")
 local VehicleTab = MachoMenuAddTab(MenuWindow, "Vehicle")
 local EventTab = MachoMenuAddTab(MenuWindow, "Triggers")
@@ -261,11 +261,11 @@ local function ServerTabContent(tab)
     return SectionOne, SectionTwo
 end
 
-local function TeleportTabContent(tab)
+local function TabContent(tab)
     local EachSectionWidth = (SectionChildWidth - (SectionsPadding * 3)) / 2
     local SectionOneStartX = TabsBarWidth + SectionsPadding
     local SectionOneEndX = SectionOneStartX + EachSectionWidth
-    local SectionOne = MachoMenuGroup(tab, "Teleport", SectionOneStartX, SectionsPadding + MachoPanelGap, SectionOneEndX, SectionChildHeight)
+    local SectionOne = MachoMenuGroup(tab, "", SectionOneStartX, SectionsPadding + MachoPanelGap, SectionOneEndX, SectionChildHeight)
 
     local SectionTwoStartX = SectionOneEndX + SectionsPadding
     local SectionTwoEndX = SectionTwoStartX + EachSectionWidth
@@ -361,7 +361,7 @@ end
 -- Tab Sections
 local PlayerTabSections = { PlayerTabContent(PlayerTab) }
 local ServerTabSections = { ServerTabContent(ServerTab) }
-local TeleportTabSections = { TeleportTabContent(TeleportTab) }
+local TabSections = { TabContent(Tab) }
 local WeaponTabSections = { WeaponTabContent(WeaponTab) }
 local VehicleTabSections = { VehicleTabContent(VehicleTab) }
 local EmoteTabSections = { EmoteTabContent(EmoteTab) }
@@ -864,9 +864,9 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
             -- Feature Definitions (Now with Ped Spawner)
             local Features = { 
                 "Look-Around", 
-                "Teleport", 
+                 "Teleport",
             }
-
+            
             -- Helper Function for Drawing Text
             local function drawText(content, x, y, options)
                 SetTextFont(options.font or 4)
