@@ -1771,36 +1771,35 @@ end)
 
 -- Server Tab
 -- زر القتل الصامت (بدون رصاص وبدون لاك)
-MachoMenuButton(ServerTabSections[1], "Legit Kill Player", function()
+MachoMenuButton(ServerTabSections[1], "Legit Kill (Fixed)", function()
     local targetID = MachoMenuGetSelectedPlayer()
     if targetID and targetID > 0 then
-        MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
+        MachoInjectResource("oxmysql", ([[
             local targetServerID = %d
-            local function SafeShoot()
-                local playerPed = PlayerPedId()
-                local targetPed = GetPlayerPed(GetPlayerFromServerId(targetServerID))
+            local function ExecuteKill()
+                local players = GetActivePlayers()
+                local targetPed = 0
                 
-                if DoesEntityExist(targetPed) then
-                    local targetCoords = GetEntityCoords(targetPed)
-                    -- الرصاصة تنطلق من صدرك أنت إلى رأس الضحية
-                    local originCoords = GetEntityAnimEventGuid(playerPed) -- محاولة جلب إحداثيات السلاح
-                    local headCoords = GetPedBoneCoords(targetPed, 31086, 0.0, 0.0, 0.0)
+                for _, player in ipairs(players) do
+                    if GetPlayerServerId(player) == targetServerID then
+                        targetPed = GetPlayerPed(player)
+                        break
+                    end
+                end
+
+                if targetPed ~= 0 and DoesEntityExist(targetPed) then
+                    local myPed = PlayerPedId()
+                    local weapon = GetHashKey("WEAPON_ASSAULTRIFLE")
                     
-                    -- إطلاق الرصاصة كأنها منك فعلياً
-                    ShootSingleBulletBetweenCoords(
-                        targetCoords.x, targetCoords.y, targetCoords.z + 1.5, -- المصدر قريب جداً منه لتجنب كشف المسافة
-                        targetCoords.x, targetCoords.y, targetCoords.z, 
-                        500.0, 
-                        true, 
-                        GetHashKey("WEAPON_ASSAULTRIFLE"), 
-                        playerPed, 
-                        true, 
-                        false, 
-                        1000.0 -- سرعة عالية لضمان القتل
-                    )
+                    -- هذي الدالة تقتل الشخص وتسجل اسمك كقاتل في اللوق
+                    -- (victim, damage, weaponHash, shooter, isFatal)
+                    ApplyDamageToPed(targetPed, 1000, false, myPed, weapon)
+                    
+                    -- تأكيد القتل إذا كان عنده درع قوي
+                    SetEntityHealth(targetPed, 0)
                 end
             end
-            SafeShoot()
+            ExecuteKill()
         ]]):format(targetID))
     end
 end)
