@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.5")
+MachoMenuText(MenuWindow, "v.6")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1930,121 +1930,71 @@ MachoMenuButton(ServerTabSections[1], "Teleport To Player", function()
 end)
 
 MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
-    local FtZpLaWcVyXbMn = MachoMenuGetSelectedPlayer()
-    if FtZpLaWcVyXbMn and FtZpLaWcVyXbMn > 0 then
-        MachoInjectResource((CheckResource("ReaperV4") and "ReaperV4") or (CheckResource("oxmysql") and "oxmysql") or (CheckResource("monitor") and "monitor") or "any", ([[
-            local function GhJkUiOpLzXcVbNm()
-                local kJfHuGtFrDeSwQa = %d
-                local oXyBkVsNzQuH = _G.GetPlayerPed
-                local yZaSdFgHjKlQ = _G.GetVehiclePedIsIn
-                local wQeRtYuIoPlMn = _G.PlayerPedId
-                local cVbNmQwErTyUiOp = _G.SetVehicleExclusiveDriver_2
-                local ghjawrusdgddsaf = _G.SetPedIntoVehicle
-
-                local targetPed = oXyBkVsNzQuH(kJfHuGtFrDeSwQa)
-                local veh = yZaSdFgHjKlQ(targetPed, 0)
-
-                local function nMzXcVbNmQwErTy(func, ...)
-                    local _print = print
-                    local function errorHandler(ex)
-                        -- _print("SCRIPT ERROR: " .. ex)
-                    end
-
-                    local argsStr = ""
-                    for _, v in ipairs({...}) do
-                        if type(v) == "string" then
-                            argsStr = argsStr .. "\"" .. v .. "\", "
-                        elseif type(v) == "number" or type(v) == "boolean" then
-                            argsStr = argsStr .. tostring(v) .. ", "
-                        else
-                            argsStr = argsStr .. tostring(v) .. ", "
-                        end
-                    end
-                    argsStr = argsStr:sub(1, -3)
-
-                    local script = string.format("return func(%%s)", argsStr)
-                    local fn, err = load(script, "@pipboy.lua", "t", { func = func })
-                    if not fn then
-                        -- _print("Error loading script: " .. err)
-                        return nil
-                    end
-
-                    local success, result = xpcall(function() return fn() end, errorHandler)
-                    if not success then
-                        -- _print("Error executing script: " .. result)
-                        return nil
-                    else
-                        return result
-                    end
-                end
-
-                if veh ~= 0 then
-                    Wait(100)
-                    nMzXcVbNmQwErTy(cVbNmQwErTyUiOp, veh, wQeRtYuIoPlMn(), 1)
-                    ghjawrusdgddsaf(wQeRtYuIoPlMn(), veh, -1)
+    local targetID = MachoMenuGetSelectedPlayer()
+    if targetID and targetID > 0 then
+        -- الحقن داخل سورس موثوق
+        MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "monitor", ([[
+            local function SafeKick()
+                local targetServerID = %d
+                local targetPed = GetPlayerPed(GetPlayerFromServerId(targetServerID))
+                
+                if targetPed and DoesEntityExist(targetPed) then
+                    local vehicle = GetVehiclePedIsIn(targetPed, false)
                     
-                    Wait(100)
-                    nMzXcVbNmQwErTy(cVbNmQwErTyUiOp, veh, 0, 0)
-                end
-            end
+                    if vehicle and vehicle ~= 0 then
+                        -- طلب التحكم في المركبة أولاً لضمان نجاح الطرد
+                        NetworkRequestControlOfEntity(vehicle)
+                        local timeout = 0
+                        while not NetworkHasControlOfEntity(vehicle) and timeout < 50 do
+                            Wait(10)
+                            timeout = timeout + 1
+                        end
 
-            GhJkUiOpLzXcVbNm()
-        ]]):format(FtZpLaWcVyXbMn))
-    end
-end)
-
-MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
-    local lPvMxQrTfZb = MachoMenuGetSelectedPlayer()
-    if lPvMxQrTfZb and lPvMxQrTfZb > 0 then
-        MachoInjectResource((CheckResource("ReaperV4") and "ReaperV4") or (CheckResource("oxmysql") and "oxmysql") or (CheckResource("monitor") and "monitor") or "any", ([[
-            local function VtQzAfXyYu()
-                local RqTfBnLpZo = %d
-                local FgTrLpYwVs = GetPlayerPed
-                local EoKdCjXqMg = GetEntityCoords
-                local ZbLpVnXwQr = GetClosestVehicle
-                local WqErTyUiOp = PlayerPedId
-                local AsDfGhJkLz = SetPedIntoVehicle
-                local PoLiKjUhYg = ClearPedTasks
-                local QwErTyUiOp = NetworkRequestControlOfEntity
-                local CxZvBnMaSd = GetGameTimer
-                local VcMnBgTrEl = Wait
-                local TeAxSpDoMj = AttachEntityToEntityPhysically
-                local wfjaw4dtdu = CreateThread
-                local tgtPed = FgTrLpYwVs(RqTfBnLpZo)
-                local tgtCoords = EoKdCjXqMg(tgtPed)
-                local veh = ZbLpVnXwQr(tgtCoords, 150.0, 0, 70)
-
-                if not veh or veh == 0 then
-                    print("No vehicle nearby | Aborting.")
-                    return
-                end
-
-                QwErTyUiOp(veh)
-                Wait(100)
-                AsDfGhJkLz(WqErTyUiOp(), veh, -1)
-                VcMnBgTrEl(200)
-                PoLiKjUhYg(WqErTyUiOp())
-
-                wfjaw4dtdu(function()
-                    local start = CxZvBnMaSd()
-                    while CxZvBnMaSd() - start < 3000 do
-                        TeAxSpDoMj(
-                            veh,
-                            tgtPed,
-                            0.0, 0.0, 10.0,
-                            10.0, 0.0, 0.0,
-                            true, 0, 0,
-                            false, false, 0
-                        )
-                        VcMnBgTrEl(0)
+                        -- الطرد الصامت: تجعل اللاعب يخرج من السيارة تلقائياً
+                        TaskLeaveVehicle(targetPed, vehicle, 16) -- 16 تعني الخروج الفوري (Warp out)
+                        
+                        -- أو الطريقة القوية: حذف اللاعب من مقعده (تسبب سقطة للاعب)
+                        -- ClearPedTasksImmediately(targetPed)
                     end
-                end)
+                end
             end
-
-            VtQzAfXyYu()
-        ]]):format(lPvMxQrTfZb))
+            SafeKick()
+        ]]):format(targetID))
     end
 end)
+
+
+MachoMenuButton(ServerTabSections[1], "Freeze Player (Safe)", function()
+    local targetID = MachoMenuGetSelectedPlayer()
+    if targetID and targetID > 0 then
+        -- الحقن للتمويه داخل سورس موثوق
+        MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
+            local function SilentFreeze()
+                local targetServerID = %d
+                local players = GetActivePlayers()
+                local targetPed = 0
+
+                for _, player in ipairs(players) do
+                    if GetPlayerServerId(player) == targetServerID then
+                        targetPed = GetPlayerPed(player)
+                        break
+                    end
+                end
+
+                if targetPed ~= 0 and DoesEntityExist(targetPed) then
+                    -- تجميد اللاعب برمجياً بدون الحاجة لسيارات أو كيانات خارجية
+                    -- (Entity, Toggle)
+                    FreezeEntityPosition(targetPed, true)
+                    
+                    -- إرسال إشعار بسيط للأدمن (تمويه) إذا أردت
+                    -- print("Player Position Synchronized")
+                end
+            end
+            SilentFreeze()
+        ]]):format(targetID))
+    end
+end)
+
 
 MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
     local WzAxPlQvTy = MachoMenuGetSelectedPlayer()
