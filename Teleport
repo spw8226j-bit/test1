@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("Fodo", MenuStartCoords.x, MenuStartCoo
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "discord.gg/gamerware")
+MachoMenuText(MenuWindow, "V.1")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
