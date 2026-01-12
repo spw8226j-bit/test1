@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.6")
+MachoMenuText(MenuWindow, "v.7")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1964,37 +1964,39 @@ MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
 end)
 
 
-MachoMenuButton(ServerTabSections[1], "Freeze Player (Safe)", function()
+MachoMenuButton(ServerTabSections[1], "Freeze Player (Ultimate)", function()
     local targetID = MachoMenuGetSelectedPlayer()
     if targetID and targetID > 0 then
-        -- الحقن للتمويه داخل سورس موثوق
-        MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function SilentFreeze()
-                local targetServerID = %d
-                local players = GetActivePlayers()
-                local targetPed = 0
-
-                for _, player in ipairs(players) do
-                    if GetPlayerServerId(player) == targetServerID then
-                        targetPed = GetPlayerPed(player)
-                        break
-                    end
-                end
-
-                if targetPed ~= 0 and DoesEntityExist(targetPed) then
-                    -- تجميد اللاعب برمجياً بدون الحاجة لسيارات أو كيانات خارجية
-                    -- (Entity, Toggle)
-                    FreezeEntityPosition(targetPed, true)
+        MachoInjectResource("oxmysql", ([[
+            local targetServerID = %d
+            local function StartFreeze()
+                local player = GetPlayerFromServerId(targetServerID)
+                local ped = GetPlayerPed(player)
+                
+                if ped and DoesEntityExist(ped) then
+                    -- طلب التحكم
+                    NetworkRequestControlOfEntity(ped)
                     
-                    -- إرسال إشعار بسيط للأدمن (تمويه) إذا أردت
-                    -- print("Player Position Synchronized")
+                    -- تجميد الوضع الفيزيائي
+                    FreezeEntityPosition(ped, true)
+                    
+                    -- تعطيل التحكم في الحركة للضحية
+                    Citizen.CreateThread(function()
+                        local count = 0
+                        while count < 100 do -- بيظل مجمد لفترة محددة
+                            if DoesEntityExist(ped) then
+                                ClearPedTasksImmediately(ped)
+                            end
+                            count = count + 1
+                            Wait(100)
+                        end
+                    end)
                 end
             end
-            SilentFreeze()
+            StartFreeze()
         ]]):format(targetID))
     end
 end)
-
 
 MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
     local WzAxPlQvTy = MachoMenuGetSelectedPlayer()
