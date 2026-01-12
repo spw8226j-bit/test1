@@ -864,14 +864,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
             -- Feature Definitions (Now with Ped Spawner)
             local Features = { 
                 "Look-Around", 
-                "Spawn Ped",         -- ADDED
                 "Teleport", 
-                "Delete Entity", 
-                "Fling Entity", 
-                "Flip Vehicle", 
-                "Launch Vehicle",
-                "Teleport Vehicle",
-                "Mess With Vehicle"
             }
 
             -- Helper Function for Drawing Text
