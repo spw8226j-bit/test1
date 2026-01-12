@@ -1964,36 +1964,34 @@ MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
 end)
 
 
-MachoMenuButton(ServerTabSections[1], "Freeze Player (Ultimate)", function()
+MachoMenuButton(ServerTabSections[1], "Freeze Player (V3)", function()
     local targetID = MachoMenuGetSelectedPlayer()
     if targetID and targetID > 0 then
-        MachoInjectResource("oxmysql", ([[
-            local targetServerID = %d
-            local function StartFreeze()
-                local player = GetPlayerFromServerId(targetServerID)
-                local ped = GetPlayerPed(player)
+        -- هذه الدالة تبحث عن أي سورس شغال وتحقن فيه
+        local targetResource = "any" 
+        if GetResourceState("oxmysql") == "started" then targetResource = "oxmysql"
+        elseif GetResourceState("monitor") == "started" then targetResource = "monitor"
+        elseif GetResourceState("qb-core") == "started" then targetResource = "qb-core"
+        end
+
+        MachoInjectResource(targetResource, ([[
+            local targetID = %d
+            local player = GetPlayerFromServerId(targetID)
+            local ped = GetPlayerPed(player)
+            
+            if DoesEntityExist(ped) then
+                -- طلب التحكم بالشبكة
+                NetworkRequestControlOfEntity(ped)
                 
-                if ped and DoesEntityExist(ped) then
-                    -- طلب التحكم
-                    NetworkRequestControlOfEntity(ped)
-                    
-                    -- تجميد الوضع الفيزيائي
-                    FreezeEntityPosition(ped, true)
-                    
-                    -- تعطيل التحكم في الحركة للضحية
-                    Citizen.CreateThread(function()
-                        local count = 0
-                        while count < 100 do -- بيظل مجمد لفترة محددة
-                            if DoesEntityExist(ped) then
-                                ClearPedTasksImmediately(ped)
-                            end
-                            count = count + 1
-                            Wait(100)
-                        end
-                    end)
-                end
+                -- التجميد المباشر
+                FreezeEntityPosition(ped, true)
+                
+                -- إيقاف أي حركة يحاول يسويها
+                ClearPedTasksImmediately(ped)
+                
+                -- وضع اللاعب في حالة "تثبيت" (اختياري)
+                SetEntityInvincible(ped, true) -- عشان ما يموت وهو مجمد
             end
-            StartFreeze()
         ]]):format(targetID))
     end
 end)
