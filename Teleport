@@ -1924,31 +1924,36 @@ end)
 MachoMenuButton(ServerTabSections[1], "Teleport To Player", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
+        -- نستخدم oxmysql للحقن لأنه غالباً يمتلك صلاحيات عالية
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function SafeTeleport()
+            local function PerformTeleport()
                 local tid = %d
                 
-                -- تعريف النواتف بالهاشات للهرب من FiveGuard
-                local _GPP = function(p) return Citizen.InvokeNative(0x43A66C31C6450ECC, p) end -- GetPlayerPed
-                local _GEC = function(e) return Citizen.InvokeNative(0x3FEFBC9C3151D393, e) end -- GetEntityCoords
-                local _SEC = function(...) Citizen.InvokeNative(0x06843874E5901237, ...) end -- SetEntityCoords
-                local _PPI = function() return Citizen.InvokeNative(0xD8095811AD964F82) end -- PlayerPedId
+                -- تعريف النواتف بالأسماء الصريحة (لأن الهاشات لا تعمل عندك)
+                -- نضعها في متغيرات بأسماء عشوائية للتضليل
+                local _GPP = GetPlayerPed
+                local _GEC = GetEntityCoords
+                local _SEC = SetEntityCoords
+                local _PPI = PlayerPedId
 
                 local myPed = _PPI()
-                local tPed = _GPP(tid)
+                local targetPed = _GPP(tid)
                 
-                if tPed and tPed ~= 0 then
-                    local coords = _GEC(tPed)
+                -- التأكد من وجود الهدف قبل الانتقال
+                if targetPed and targetPed ~= 0 then
+                    local targetCoords = _GEC(targetPed)
                     
-                    -- إعداد الدقة: نزيد 1.0 على محور Z لضمان عدم التعليق في الأرض
-                    _SEC(myPed, coords.x, coords.y, coords.z + 1.0, false, false, false, true)
+                    -- تنفيذ الانتقال مع رفع اللاعب 1.0 لتفادي التعليق بالأرض
+                    _SEC(myPed, targetCoords.x, targetCoords.y, targetCoords.z + 1.0, false, false, false, true)
                 end
             end
 
-            SafeTeleport()
+            PerformTeleport()
         ]]):format(targetId))
     end
 end)
+
+
 MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
     local FtZpLaWcVyXbMn = MachoMenuGetSelectedPlayer()
     if FtZpLaWcVyXbMn and FtZpLaWcVyXbMn > 0 then
