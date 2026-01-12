@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("Fodo", MenuStartCoords.x, MenuStartCoo
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.1")
+MachoMenuText(MenuWindow, "v.2")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -846,7 +846,7 @@ end)
 MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
     MachoInjectResource((CheckResource("core") and "core") or (CheckResource("es_extended") and "es_extended") or (CheckResource("qb-core") and "qb-core") or (CheckResource("monitor") and "monitor") or "any", [[
         
-        x_local_state_01 = true
+        x_local_state_01 = false
         
         local function initializeFreecam()
             -- Script State
