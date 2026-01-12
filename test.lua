@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("Fodo", MenuStartCoords.x, MenuStartCoo
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.4")
+MachoMenuText(MenuWindow, "v.5")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -864,7 +864,6 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
             -- Feature Definitions (Now with Ped Spawner)
             local Features = { 
                 "Look-Around", 
-                 "Teleport",
             }
             
             -- Helper Function for Drawing Text
