@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("Fodo", MenuStartCoords.x, MenuStartCoo
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "V.1")
+MachoMenuText(MenuWindow, "v.3")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -862,7 +862,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
             local stopFreecam, startFreecam
 
             -- Feature Definitions (Now with Ped Spawner)
-            l local Features = { 
+            local Features = { 
                 "Look-Around", 
                 "Spawn Ped",         -- ADDED
                 "Teleport", 
@@ -873,7 +873,7 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
                 "Teleport Vehicle",
                 "Mess With Vehicle"
             }
-            
+
             -- Helper Function for Drawing Text
             local function drawText(content, x, y, options)
                 SetTextFont(options.font or 4)
@@ -931,23 +931,59 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
                     Wait(0)
                     if IsDisabledControlJustPressed(0, 241) then currentFeatureIndex = (currentFeatureIndex - 2 + #Features) % #Features + 1 elseif IsDisabledControlJustPressed(0, 242) then currentFeatureIndex = (currentFeatureIndex % #Features) + 1 end
                     
-                    if IsDisabledControlJustPressed(0, 24) then -- عند الضغط على زر التفاعل (غالباً كليك يسار)
-    local currentFeature = Features[currentFeatureIndex]
-    
-    -- أبقينا فقط ميزة الانتقال
-    if currentFeature == "Teleport" and targetCoords then
-        local ped = PlayerPedId()
-        
-        -- الحصول على ارتفاع الأرض بدقة لضمان عدم السقوط تحت الخريطة
-        local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, false)
-        
-        -- تنفيذ الانتقال إلى إحداثيات الكاميرا
-        SetEntityCoords(ped, targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z, false, false, false, true)
-        
-        -- اختياري: إرسال إشعار بسيط للتأكيد
-        -- MachoMenuNotification("[INFO]", "تم الانتقال بنجاح")
-    end
-endend
+                    if IsDisabledControlJustPressed(0, 24) then -- Action Key Pressed
+                        local currentFeature = Features[currentFeatureIndex]
+                        if currentFeature == "Teleport" and targetCoords then
+                            local ped = PlayerPedId()
+                            local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, false)
+                            SetEntityCoords(ped, targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z, false, false, false, true)
+                        -- ##### NEW FEATURE: SAFE PED SPAWNER LOGIC #####
+                        elseif currentFeature == "Spawn Ped" and targetCoords then
+                            local model = pedsToSpawn[currentPedIndex]
+                            CreateThread(function()
+                                local modelHash = GetHashKey(model)
+                                RequestModel(modelHash)
+                                local timeout = 2000 -- 2 second timeout for model loading
+                                while not HasModelLoaded(modelHash) and timeout > 0 do
+                                    Wait(100)
+                                    timeout = timeout - 100
+                                end
+                                if HasModelLoaded(modelHash) then
+                                    local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z, false)
+                                    local spawnPos = vector3(targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z)
+                                    local newPed = CreatePed(4, modelHash, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, true, true)
+                                    SetModelAsNoLongerNeeded(modelHash)
+                                    TaskStandStill(newPed, -1) -- Make them stand still
+                                    currentPedIndex = (currentPedIndex % #pedsToSpawn) + 1 -- Cycle to the next ped for next time
+                                end
+                            end)
+                        elseif currentFeature == "Delete Entity" and targetEntity and DoesEntityExist(targetEntity) then
+                            SetEntityAsMissionEntity(targetEntity, true, true)
+                            DeleteEntity(targetEntity)
+                        elseif currentFeature == "Fling Entity" and targetEntity and (IsEntityAPed(targetEntity) or IsEntityAVehicle(targetEntity)) then
+                            ApplyForceToEntity(targetEntity, 1, math.random(-50.0, 50.0), math.random(-50.0, 50.0), 50.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
+                        elseif currentFeature == "Flip Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            SetVehicleOnGroundProperly(targetEntity)
+                        elseif currentFeature == "Launch Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            ApplyForceToEntity(targetEntity, 1, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
+                        elseif currentFeature == "Teleport Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            local currentCoords = GetEntityCoords(targetEntity)
+                            local newCoords = currentCoords + GetEntityForwardVector(targetEntity) * 5.0 + vector3(0.0, 0.0, 50.0)
+                            SetEntityCoords(targetEntity, newCoords.x, newCoords.y, newCoords.z, false, false, false, true)
+                        elseif currentFeature == "Mess With Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
+                            local actions = {
+                                function(veh) SetVehicleTyreBurst(veh, math.random(0, 5), false, 1000.0) end,
+                                function(veh) SetVehicleDoorOpen(veh, math.random(0, 5), false, false) end,
+                                function(veh) SetVehicleEngineOn(veh, not IsVehicleEngineOn(veh), false, true) end,
+                                function(veh) SetVehicleLights(veh, math.random(0, 2)) end,
+                                function(veh) StartVehicleHorn(veh, 1000, "HELDDOWN", false) end
+                            }
+                            local randomAction = actions[math.random(#actions)]
+                            randomAction(targetEntity)
+                        end
+                    end
+                end
+            end
 
             -- Main Camera Movement Thread (Unchanged)
             local function cameraThread()
@@ -1004,7 +1040,6 @@ end, function()
         if isFreecamActive and stopFreecam then stopFreecam() end
     ]])
 end)
-
 
 MachoMenuCheckbox(PlayerTabSections[1], "Super Jump", function()
     MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
