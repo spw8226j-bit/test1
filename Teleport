@@ -1872,7 +1872,7 @@ MachoMenuButton(ServerTabSections[1], "Explode Player", function()
     end
 end)
 
-MMachoMenuButton(ServerTabSections[1], "Object Spam Player", function()
+MachoMenuButton(ServerTabSections[1], "Object Spam Player", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
