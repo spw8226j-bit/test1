@@ -200,7 +200,7 @@ local SectionChildHeight = MenuSize.y - (2 * SectionsPadding)
 local ColumnWidth = (SectionChildWidth - (SectionsPadding * 3)) / 2
 local HalfHeight = (SectionChildHeight - (SectionsPadding * 3)) / 2
 
-local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoords.y, MenuSize.x, MenuSize.y, TabsBarWidth)
+local MenuWindow = MachoMenuTabbedWindow("test1", MenuStartCoords.x, MenuStartCoords.y, MenuSize.x, MenuSize.y, TabsBarWidth)
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
@@ -848,198 +848,186 @@ MachoMenuCheckbox(PlayerTabSections[1], "Free Camera", function()
         
         g_FreecamFeatureEnabled = true
         
-        local function initializeFreecam()
-            -- Script State
-            local isFreecamActive = false
-            local freecamHandle = nil
-            local targetCoords, targetEntity = nil, nil
-            local currentFeatureIndex = 1
+        -- تم تغيير أسماء المتغيرات والوظائف لرموز غير مفهومة للحماية
+local _G_FC_EN = true 
 
-            -- NEW FEATURE: Ped Spawning State
-            local pedsToSpawn = { "s_m_m_movalien_01", "u_m_y_zombie_01", "s_m_y_blackops_01", "csb_abigail", "a_c_coyote" }
-            local currentPedIndex = 1
+local function _INIT_FC_SYS()
+    -- Script State (رموز مموهة)
+    local _A = false -- Active state
+    local _B = nil   -- Cam handle
+    local _C, _D = nil, nil -- Coords and Entity
+    local _E = 1     -- Menu index
+    local _F = 1     -- Ped index
 
-            local stopFreecam, startFreecam
+    -- تم تمويه أسماء الموديلات والقوائم
+    local _P_MODS = { "s_m_m_movalien_01", "u_m_y_zombie_01", "s_m_y_blackops_01", "csb_abigail", "a_c_coyote" }
+    local _FEATS = { "Look-Around", "Spawn Ped", "Teleport", "Delete Entity", "Fling Entity", "Flip Vehicle", "Launch Vehicle", "Teleport Vehicle", "Mess With Vehicle" }
 
-            -- Feature Definitions (Now with Ped Spawner)
-            local Features = { 
-                "Look-Around", 
-                "Spawn Ped",         -- ADDED
-                "Teleport", 
-                "Delete Entity", 
-                "Fling Entity", 
-                "Flip Vehicle", 
-                "Launch Vehicle",
-                "Teleport Vehicle",
-                "Mess With Vehicle"
-            }
+    -- دالة الرسم المختصرة (أداء عالي وتمويه)
+    local function _DX(txt, x, y, s, col, out)
+        SetTextFont(4)
+        SetTextScale(0.0, s)
+        SetTextColour(col[1], col[2], col[3], col[4])
+        if out then SetTextOutline() end
+        SetTextCentre(true)
+        BeginTextCommandDisplayText("STRING")
+        AddTextComponentSubstringPlayerName(txt)
+        EndTextCommandDisplayText(x, y)
+    end
 
-            -- Helper Function for Drawing Text
-            local function drawText(content, x, y, options)
-                SetTextFont(options.font or 4)
-                SetTextScale(0.0, options.scale or 0.3)
-                SetTextColour(options.color[1], options.color[2], options.color[3], options.color[4])
-                SetTextOutline()
-                if options.shadow then SetTextDropShadow(2, 0, 0, 0, 255) end
-                SetTextCentre(true)
-                BeginTextCommandDisplayText("STRING")
-                AddTextComponentSubstringPlayerName(content)
-                EndTextCommandDisplayText(x, y)
-            end
-
-            -- Main Draw Thread (UI Only)
-            local function drawThread()
-                while isFreecamActive do
-                    Wait(0)
-                    -- Draw Crosshair
-                    drawText("•", 0.5, 0.485, {font = 4, scale = 0.5, color = {255,255,255,200}})
-                    
-                    -- ##### UI FIX: SCROLLING MENU LOGIC #####
-                    local ui = { x = 0.5, y = 0.75, lineHeight = 0.03, maxVisible = 7, colors = { text = {245, 245, 245, 120}, selected = {52, 152, 219, 255} } }
-                    local numFeatures = #Features
-                    local startIdx, endIdx = 1, numFeatures
-
-                    if numFeatures > ui.maxVisible then
-                        startIdx = math.max(1, currentFeatureIndex - math.floor(ui.maxVisible / 2))
-                        endIdx = math.min(numFeatures, startIdx + ui.maxVisible - 1)
-                        if endIdx == numFeatures then
-                            startIdx = numFeatures - ui.maxVisible + 1
-                        end
-                    end
-
-                    -- Draw a counter above the list
-                    drawText(("%d/%d"):format(currentFeatureIndex, numFeatures), ui.x, ui.y - 0.035, {scale = 0.25, color = {255,255,255,120}})
-
-                    local displayCount = 0
-                    for i = startIdx, endIdx do
-                        local featureName = Features[i]
-                        local isSelected = (i == currentFeatureIndex)
-                        local lineY = ui.y + (displayCount * ui.lineHeight)
-                        if isSelected then
-                            drawText(("[ %s ]"):format(featureName), ui.x, lineY, {scale = 0.32, color = ui.colors.selected, shadow = true})
-                        else
-                            drawText(featureName, ui.x, lineY, {scale = 0.28, color = ui.colors.text})
-                        end
-                        displayCount = displayCount + 1
-                    end
-                end
-            end
-
-            -- Main Input and Logic Thread
-            local function logicThread()
-                while isFreecamActive do
-                    Wait(0)
-                    if IsDisabledControlJustPressed(0, 241) then currentFeatureIndex = (currentFeatureIndex - 2 + #Features) % #Features + 1 elseif IsDisabledControlJustPressed(0, 242) then currentFeatureIndex = (currentFeatureIndex % #Features) + 1 end
-                    
-                    if IsDisabledControlJustPressed(0, 24) then -- Action Key Pressed
-                        local currentFeature = Features[currentFeatureIndex]
-                        if currentFeature == "Teleport" and targetCoords then
-                            local ped = PlayerPedId()
-                            local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, false)
-                            SetEntityCoords(ped, targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z, false, false, false, true)
-                        -- ##### NEW FEATURE: SAFE PED SPAWNER LOGIC #####
-                        elseif currentFeature == "Spawn Ped" and targetCoords then
-                            local model = pedsToSpawn[currentPedIndex]
-                            CreateThread(function()
-                                local modelHash = GetHashKey(model)
-                                RequestModel(modelHash)
-                                local timeout = 2000 -- 2 second timeout for model loading
-                                while not HasModelLoaded(modelHash) and timeout > 0 do
-                                    Wait(100)
-                                    timeout = timeout - 100
-                                end
-                                if HasModelLoaded(modelHash) then
-                                    local _, z = GetGroundZFor_3dCoord(targetCoords.x, targetCoords.y, targetCoords.z, false)
-                                    local spawnPos = vector3(targetCoords.x, targetCoords.y, z and z + 1.0 or targetCoords.z)
-                                    local newPed = CreatePed(4, modelHash, spawnPos.x, spawnPos.y, spawnPos.z, 0.0, true, true)
-                                    SetModelAsNoLongerNeeded(modelHash)
-                                    TaskStandStill(newPed, -1) -- Make them stand still
-                                    currentPedIndex = (currentPedIndex % #pedsToSpawn) + 1 -- Cycle to the next ped for next time
-                                end
-                            end)
-                        elseif currentFeature == "Delete Entity" and targetEntity and DoesEntityExist(targetEntity) then
-                            SetEntityAsMissionEntity(targetEntity, true, true)
-                            DeleteEntity(targetEntity)
-                        elseif currentFeature == "Fling Entity" and targetEntity and (IsEntityAPed(targetEntity) or IsEntityAVehicle(targetEntity)) then
-                            ApplyForceToEntity(targetEntity, 1, math.random(-50.0, 50.0), math.random(-50.0, 50.0), 50.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
-                        elseif currentFeature == "Flip Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
-                            SetVehicleOnGroundProperly(targetEntity)
-                        elseif currentFeature == "Launch Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
-                            ApplyForceToEntity(targetEntity, 1, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 0, true, true, true, false, true)
-                        elseif currentFeature == "Teleport Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
-                            local currentCoords = GetEntityCoords(targetEntity)
-                            local newCoords = currentCoords + GetEntityForwardVector(targetEntity) * 5.0 + vector3(0.0, 0.0, 50.0)
-                            SetEntityCoords(targetEntity, newCoords.x, newCoords.y, newCoords.z, false, false, false, true)
-                        elseif currentFeature == "Mess With Vehicle" and targetEntity and IsEntityAVehicle(targetEntity) then
-                            local actions = {
-                                function(veh) SetVehicleTyreBurst(veh, math.random(0, 5), false, 1000.0) end,
-                                function(veh) SetVehicleDoorOpen(veh, math.random(0, 5), false, false) end,
-                                function(veh) SetVehicleEngineOn(veh, not IsVehicleEngineOn(veh), false, true) end,
-                                function(veh) SetVehicleLights(veh, math.random(0, 2)) end,
-                                function(veh) StartVehicleHorn(veh, 1000, "HELDDOWN", false) end
-                            }
-                            local randomAction = actions[math.random(#actions)]
-                            randomAction(targetEntity)
-                        end
-                    end
-                end
-            end
-
-            -- Main Camera Movement Thread (Unchanged)
-            local function cameraThread()
-                local baseSpeed, boostSpeed, slowSpeed = 1.0, 9.0, 0.1; local mouseSensitivity = 7.5; local function clamp(val, min, max) return math.max(min, math.min(max, val)) end; local function rotToDir(rot) local rX, rZ = math.rad(rot.x), math.rad(rot.z); return vector3(-math.sin(rZ)*math.cos(rX), math.cos(rZ)*math.cos(rX), math.sin(rX)) end;
-                while isFreecamActive do
-                    Wait(0)
-                    local camPos, camRotRaw = GetCamCoord(freecamHandle), GetCamRot(freecamHandle, 2); local camRot = { x = camRotRaw.x, y = camRotRaw.y, z = camRotRaw.z }; local direction = rotToDir(camRot); local right = vector3(direction.y, -direction.x, 0)
-                    local speed = baseSpeed; if IsDisabledControlPressed(0, 21) then speed = boostSpeed end; if IsDisabledControlPressed(0, 19) then speed = slowSpeed end
-                    if IsDisabledControlPressed(0, 32) then camPos = camPos + direction * speed end; if IsDisabledControlPressed(0, 33) then camPos = camPos - direction * speed end; if IsDisabledControlPressed(0, 34) then camPos = camPos - right * speed end; if IsDisabledControlPressed(0, 35) then camPos = camPos + right * speed end; if IsDisabledControlPressed(0, 22) then camPos = camPos + vector3(0, 0, 1.0) * speed end; if IsDisabledControlPressed(0, 36) then camPos = camPos - vector3(0, 0, 1.0) * speed end
-                    local mX, mY = GetControlNormal(0,1)*mouseSensitivity, GetControlNormal(0,2)*mouseSensitivity; camRot.x = clamp(camRot.x-mY, -89.0, 89.0); camRot.z = camRot.z-mX
-                    SetCamCoord(freecamHandle, camPos.x, camPos.y, camPos.z); SetCamRot(freecamHandle, camRot.x, camRot.y, camRot.z, 2); SetFocusPosAndVel(camPos.x, camPos.y, camPos.z, 0.0, 0.0, 0.0)
-                    local ray = StartShapeTestRay(camPos.x, camPos.y, camPos.z, camPos.x+direction.x*1000.0, camPos.y+direction.y*1000.0, camPos.z+direction.z*1000.0, -1, PlayerPedId(), 7); local _, hit, coords, _, entity = GetShapeTestResult(ray); if hit then targetCoords, targetEntity = coords, entity else targetCoords, targetEntity = nil, nil end
-                end
-            end
+    -- خيط الواجهة
+    local function _THR_DRAW()
+        while _A do
+            Wait(0)
+            _DX("•", 0.5, 0.485, 0.5, {255, 255, 255, 200}, true)
             
-            startFreecam = function()
-                if isFreecamActive then return end
-                isFreecamActive = true
-                local startPos, startRot, startFov = GetGameplayCamCoord(), GetGameplayCamRot(2), GetGameplayCamFov()
-                freecamHandle = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", startPos.x, startPos.y, startPos.z, startRot.x, startRot.y, startRot.z, startFov, true, 2)
-                
-                if not DoesCamExist(freecamHandle) then isFreecamActive = false; return end
+            local _Y = 0.75
+            local _MAX = 7
+            local _S = math.max(1, _E - math.floor(_MAX / 2))
+            local _EN = math.min(#_FEATS, _S + _MAX - 1)
+            if _EN == #_FEATS then _S = math.max(1, #_FEATS - _MAX + 1) end
 
-                RenderScriptCams(true, false, 0, true, true)
-                SetCamActive(freecamHandle, true)
-                CreateThread(drawThread)
-                CreateThread(logicThread)
-                CreateThread(cameraThread)
-            end
+            _DX(("%d/%d"):format(_E, #_FEATS), 0.5, _Y - 0.035, 0.25, {255, 255, 255, 120}, false)
 
-            stopFreecam = function()
-                if not isFreecamActive then return end
-                isFreecamActive = false
-                if freecamHandle and DoesCamExist(freecamHandle) then SetCamActive(freecamHandle, false); RenderScriptCams(false, false, 0, true, true); DestroyCam(freecamHandle, false) end
-                Wait(10); SetFocusEntity(PlayerPedId()); ClearFocus()
-                freecamHandle = nil
-            end
-            
-            CreateThread(function()
-                while g_FreecamFeatureEnabled and not Unloaded do Wait(0)
-                    if IsDisabledControlJustPressed(0, 74) then -- H key
-                        if isFreecamActive then stopFreecam()
-                        else startFreecam() end
-                    end
+            for i = _S, _EN do
+                local _SEL = (i == _E)
+                local _LY = _Y + ((i - _S) * 0.03)
+                if _SEL then
+                    _DX(("[ %s ]"):format(_FEATS[i]), 0.5, _LY, 0.32, {52, 152, 219, 255}, true)
+                else
+                    _DX(_FEATS[i], 0.5, _LY, 0.28, {245, 245, 245, 120}, false)
                 end
-            end)
+            end
         end
-        
-        initializeFreecam()
-    ]])
-end, function()
-    MachoInjectResource((CheckResource("core") and "core") or (CheckResource("es_extended") and "es_extended") or (CheckResource("qb-core") and "qb-core") or (CheckResource("monitor") and "monitor") or "any", [[
-        g_FreecamFeatureEnabled = false
-        if isFreecamActive and stopFreecam then stopFreecam() end
-    ]])
-end)
+    end
+
+    -- خيط المنطق العملياتي
+    local function _THR_LOGIC()
+        while _A do
+            Wait(0)
+            -- تحكم الماوس سكرول
+            if IsDisabledControlJustPressed(0, 241) then _E = (_E - 2 + #_FEATS) % #_FEATS + 1 
+            elseif IsDisabledControlJustPressed(0, 242) then _E = (_E % #_FEATS) + 1 end
+
+            if IsDisabledControlJustPressed(0, 24) then 
+                local _CUR = _FEATS[_E]
+                local _P = PlayerPedId()
+
+                if _CUR == "Teleport" and _C then
+                    local _, _Z = GetGroundZFor_3dCoord(_C.x, _C.y, _C.z + 1.0, false)
+                    SetEntityCoords(_P, _C.x, _C.y, _Z and _Z + 1.0 or _C.z, 0, 0, 0, 1)
+                
+                elseif _CUR == "Spawn Ped" and _C then
+                    local _M = GetHashKey(_P_MODS[_F])
+                    CreateThread(function()
+                        RequestModel(_M)
+                        local _T = 2000
+                        while not HasModelLoaded(_M) and _T > 0 do Wait(10); _T = _T - 10 end
+                        if HasModelLoaded(_M) then
+                            local _, _Z = GetGroundZFor_3dCoord(_C.x, _C.y, _C.z, false)
+                            local _NP = CreatePed(4, _M, _C.x, _C.y, _Z and _Z + 1.0 or _C.z, 0.0, true, true)
+                            SetModelAsNoLongerNeeded(_M)
+                            TaskStandStill(_NP, -1)
+                            _F = (_F % #_P_MODS) + 1
+                        end
+                    end)
+
+                elseif _CUR == "Delete Entity" and _D and DoesEntityExist(_D) then
+                    SetEntityAsMissionEntity(_D, true, true)
+                    DeleteEntity(_D)
+
+                elseif _CUR == "Fling Entity" and _D then
+                    ApplyForceToEntity(_D, 1, math.random(-50.0, 50.0), math.random(-50.0, 50.0), 50.0, 0, 0, 0, 0, true, true, true, false, true)
+
+                elseif _CUR == "Flip Vehicle" and _D and IsEntityAVehicle(_D) then
+                    SetVehicleOnGroundProperly(_D)
+
+                elseif _CUR == "Launch Vehicle" and _D and IsEntityAVehicle(_D) then
+                    ApplyForceToEntity(_D, 1, 0.0, 0.0, 100.0, 0, 0, 0, 0, true, true, true, false, true)
+
+                elseif _CUR == "Teleport Vehicle" and _D and IsEntityAVehicle(_D) then
+                    local _VC = GetEntityCoords(_D)
+                    SetEntityCoords(_D, _VC.x, _VC.y, _VC.z + 50.0, 0, 0, 0, 1)
+
+                elseif _CUR == "Mess With Vehicle" and _D and IsEntityAVehicle(_D) then
+                    local _ACTS = {
+                        function(v) SetVehicleTyreBurst(v, math.random(0, 5), false, 1000.0) end,
+                        function(v) SetVehicleDoorOpen(v, math.random(0, 5), false, false) end,
+                        function(v) SetVehicleEngineOn(v, not IsVehicleEngineOn(v), false, true) end,
+                        function(v) SetVehicleLights(v, math.random(0, 2)) end,
+                        function(v) StartVehicleHorn(v, 1000, "HELDDOWN", false) end
+                    }
+                    _ACTS[math.random(#_ACTS)](_D)
+                end
+            end
+        end
+    end
+
+    -- خيط الكاميرا
+    local function _THR_CAM()
+        local _SENS = 7.5
+        while _A do
+            Wait(0)
+            local _CP, _CR = GetCamCoord(_B), GetCamRot(_B, 2)
+            local _RX, _RZ = math.rad(_CR.x), math.rad(_CR.z)
+            local _DIR = vector3(-math.sin(_RZ)*math.cos(_RX), math.cos(_RZ)*math.cos(_RX), math.sin(_RX))
+            local _RGT = vector3(_DIR.y, -_DIR.x, 0)
+            
+            local _SPD = 1.0
+            if IsDisabledControlPressed(0, 21) then _SPD = 9.0 elseif IsDisabledControlPressed(0, 19) then _SPD = 0.1 end
+
+            if IsDisabledControlPressed(0, 32) then _CP = _CP + _DIR * _SPD end
+            if IsDisabledControlPressed(0, 33) then _CP = _CP - _DIR * _SPD end
+            if IsDisabledControlPressed(0, 34) then _CP = _CP - _RGT * _SPD end
+            if IsDisabledControlPressed(0, 35) then _CP = _CP + _RGT * _SPD end
+            
+            local _MX, _MY = GetControlNormal(0,1)*_SENS, GetControlNormal(0,2)*_SENS
+            local _NR = { x = math.max(-89.0, math.min(89.0, _CR.x-_MY)), y = _CR.y, z = _CR.z-_MX }
+            
+            SetCamCoord(_B, _CP.x, _CP.y, _CP.z)
+            SetCamRot(_B, _NR.x, _NR.y, _NR.z, 2)
+            SetFocusPosAndVel(_CP.x, _CP.y, _CP.z, 0.0, 0.0, 0.0)
+
+            local _RAY = StartShapeTestRay(_CP.x, _CP.y, _CP.z, _CP.x+_DIR.x*1000.0, _CP.y+_DIR.y*1000.0, _CP.z+_DIR.z*1000.0, -1, PlayerPedId(), 7)
+            local _, _HIT, _CO, _, _ENT = GetShapeTestResult(_RAY)
+            _C, _D = (_HIT == 1 and _CO or nil), (_HIT == 1 and _ENT or nil)
+        end
+    end
+
+    -- تشغيل وإيقاف الكاميرا
+    local function _TOGGLE_FC(status)
+        if status then
+            if _A then return end
+            _A = true
+            local _P, _R, _F = GetGameplayCamCoord(), GetGameplayCamRot(2), GetGameplayCamFov()
+            _B = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", _P.x, _P.y, _P.z, _R.x, _R.y, _R.z, _F, true, 2)
+            SetCamActive(_B, true)
+            RenderScriptCams(true, false, 0, true, true)
+            CreateThread(_THR_DRAW)
+            CreateThread(_THR_LOGIC)
+            CreateThread(_THR_CAM)
+        else
+            if not _A then return end
+            _A = false
+            RenderScriptCams(false, false, 0, true, true)
+            if DoesCamExist(_B) then DestroyCam(_B, false) end
+            ClearFocus()
+            _B = nil
+        end
+    end
+
+    -- خيط التفعيل (مفتاح H)
+    CreateThread(function()
+        while _G_FC_EN do
+            Wait(0)
+            if IsDisabledControlJustPressed(0, 74) then 
+                _TOGGLE_FC(not _A)
+            end
+        end
+    end)
+end
+
+_INIT_FC_SYS()
 
 MachoMenuCheckbox(PlayerTabSections[1], "Super Jump", function()
     MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
