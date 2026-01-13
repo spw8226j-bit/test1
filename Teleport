@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.6")
+MachoMenuText(MenuWindow, "v.7")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1951,35 +1951,40 @@ end)
 MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
-        -- الحقن في ريسورس موثوق
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
             local function HijackVehicle()
                 local tid = %d
-                
-                -- تعريف الأوامر بأسلوبك اللي يشتغل
                 local _GPP = GetPlayerPed
                 local _GVPI = GetVehiclePedIsIn
                 local _PPI = PlayerPedId
                 local _SVED = SetVehicleExclusiveDriver_2
                 local _SPIV = SetPedIntoVehicle
                 local _RCE = NetworkRequestControlOfEntity
+                local _NHC = NetworkHasControlOfEntity
 
                 local tPed = _GPP(tid)
                 local veh = _GVPI(tPed, false)
 
                 if veh and veh ~= 0 then
-                    -- طلب السيطرة على المركبة أولاً لضمان نجاح الطرد
+                    -- محاولة سرقة السيطرة بشكل متكرر لضمان النجاح
+                    local timeout = 0
                     _RCE(veh)
+                    while not _NHC(veh) and timeout < 50 do
+                        _RCE(veh)
+                        Wait(10)
+                        timeout = timeout + 1
+                    end
+
+                    -- إذا نجحت السيطرة أو انتهى الوقت، نحاول الطرد
+                    _SVED(veh, _PPI(), 1) -- جعل نفسك السائق الحصري
+                    Wait(50)
+                    _SPIV(_PPI(), veh, -1) -- سحبك للمقعد
                     
-                    -- جعل نفسك السائق الحصري (هذا يطرد اللاعب فوراً)
-                    _SVED(veh, _PPI(), 1)
+                    -- قفل الأبواب عليه لثواني عشان ما يرجع يركب
+                    SetVehicleDoorsLocked(veh, 4)
                     
-                    -- نقلك لمقعد السائق
-                    _SPIV(_PPI(), veh, -1)
-                    
-                    -- تأخير بسيط ثم إلغاء الحصرية لكي تستطيع القيادة بحرية
-                    Wait(200)
-                    _SVED(veh, 0, 0)
+                    Wait(500)
+                    _SVED(veh, 0, 0) -- تحرير الحصرية للقيادة
                 end
             end
 
