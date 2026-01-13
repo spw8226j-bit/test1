@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.8")
+MachoMenuText(MenuWindow, "v.9")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -2027,50 +2027,42 @@ MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
     end
 end)
 
-MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
+MachoMenuButton(ServerTabSections[1], "Glitch Player (No Car)", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function RunGlitch()
+            local function FastGlitch()
                 local tid = %d
                 local _GPP = GetPlayerPed
                 local _GEC = GetEntityCoords
-                local _GCV = GetClosestVehicle
+                local _CO = CreateObject
                 local _AEP = AttachEntityToEntityPhysically
-                local _RCE = NetworkRequestControlOfEntity
-                local _NHC = NetworkHasControlOfEntity
+                local _DE = DeleteEntity
 
                 local tPed = _GPP(tid)
-                local tCoord = _GEC(tPed)
-                -- البحث عن أقرب مركبة في نطاق 150 متر
-                local veh = _GCV(tCoord.x, tCoord.y, tCoord.z, 150.0, 0, 70)
+                if tPed == 0 then return end
+                local coords = _GEC(tPed)
 
-                if veh and veh ~= 0 then
-                    -- محاولة سحب السيطرة بالقوة (Force Control)
-                    local timeout = 0
-                    _RCE(veh)
-                    while not _NHC(veh) and timeout < 50 do
-                        _RCE(veh)
-                        Wait(10)
-                        timeout = timeout + 1
+                -- إنشاء كائن صغير غير مرئي أو بسيط لعمل الجلتش
+                -- هاش لبرميل صغير أو كائن لا يسبب باند
+                local model = `prop_tool_box_04` 
+                RequestModel(model)
+                while not HasModelLoaded(model) do Wait(0) end
+
+                local obj = _CO(model, coords.x, coords.y, coords.z - 5.0, true, true, false)
+                SetEntityVisible(obj, false, false) -- إخفاء الكائن
+
+                Citizen.CreateThread(function()
+                    local start = GetGameTimer()
+                    while GetGameTimer() - start < 3000 do
+                        -- سحب اللاعب بقوة فيزيائية هائلة عبر الكائن
+                        _AEP(obj, tPed, 0, 0.0, 0.0, 0.0, 5000.0, 5000.0, 5000.0, 100.0, 100.0, 100.0, true, true, true, false, 0)
+                        Wait(0)
                     end
-
-                    -- إذا حصلنا على السيطرة، نبدأ الجلتش الفيزيائي
-                    Citizen.CreateThread(function()
-                        local start = GetGameTimer()
-                        while GetGameTimer() - start < 4000 do -- زيادة المدة لـ 4 ثواني
-                            -- استخدام قيم ضخمة لتشتيت فيزياء اللعبة
-                            _AEP(veh, tPed, 0, 0.0, 0.0, 0.0, 3000.0, -1500.0, 2000.0, 20.0, 150.0, 900.0, true, true, true, false, 0)
-                            Wait(0)
-                        end
-                        
-                        -- بعد انتهاء الجلتش، نقوم بحذف السيارة أو إبعادها لكي لا تظل عالقة بك
-                        _SEC = SetEntityCoords
-                        _SEC(veh, 9999.0, 9999.0, -100.0, false, false, false, false)
-                    end)
-                end
+                    _DE(obj) -- حذف الكائن بعد الانتهاء
+                end)
             end
-            RunGlitch()
+            FastGlitch()
         ]]):format(targetId))
     end
 end)
