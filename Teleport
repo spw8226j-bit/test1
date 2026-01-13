@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.9")
+MachoMenuText(MenuWindow, "v.10")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1999,27 +1999,27 @@ MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
             local function RunFreeze()
                 local tid = %d
-                -- تعريف الأوامر بالأسماء اللي يفهمها الإنجكتور حقك
+                -- تعريف النواتف الأساسية (نفس أسلوب التيلبورت الشغال عندك)
                 local _GPP = GetPlayerPed
+                local _FEP = FreezeEntityPosition
                 local _GEC = GetEntityCoords
-                local _GCV = GetClosestVehicle
-                local _RCE = NetworkRequestControlOfEntity
-                local _AEP = AttachEntityToEntityPhysically
+                local _SEC = SetEntityCoords
 
                 local tPed = _GPP(tid)
-                local tCoord = _GEC(tPed)
-                local veh = _GCV(tCoord.x, tCoord.y, tCoord.z, 150.0, 0, 70)
 
-                if veh and veh ~= 0 then
-                    _RCE(veh) -- طلب السيطرة على السيارة
+                if tPed and tPed ~= 0 then
+                    -- طلب السيطرة الشبكية على اللاعب (مهم جداً للتجميد)
+                    NetworkRequestControlOfEntity(tPed)
                     
-                    Citizen.CreateThread(function()
-                        local start = GetGameTimer()
-                        while GetGameTimer() - start < 5000 do -- يجمد لمدة 5 ثواني
-                            _AEP(veh, tPed, 0, 0.0, 0.0, 4.0, 4.0, 0.0, 0.0, true, 0, 0, false, false, 0)
-                            Wait(0)
-                        end
-                    end)
+                    -- تنفيذ التجميد
+                    _FEP(tPed, true)
+                    
+                    -- نرفعه قليلًا عن الأرض لضمان عدم تحركه نهائياً
+                    local coords = _GEC(tPed)
+                    _SEC(tPed, coords.x, coords.y, coords.z, false, false, false, true)
+
+                    -- رسالة اختيارية تظهر لك في الكونسول للتأكيد
+                    -- print("Player Frozen Successfully")
                 end
             end
             RunFreeze()
@@ -2027,42 +2027,54 @@ MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
     end
 end)
 
-MachoMenuButton(ServerTabSections[1], "Glitch Player (No Car)", function()
+MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function FastGlitch()
+            local function RunGlitch()
                 local tid = %d
                 local _GPP = GetPlayerPed
+                local _GVPI = GetVehiclePedIsIn
                 local _GEC = GetEntityCoords
-                local _CO = CreateObject
                 local _AEP = AttachEntityToEntityPhysically
-                local _DE = DeleteEntity
+                local _RCE = NetworkRequestControlOfEntity
+                local _NHC = NetworkHasControlOfEntity
 
                 local tPed = _GPP(tid)
-                if tPed == 0 then return end
-                local coords = _GEC(tPed)
+                -- نستخدم مركبة اللاعب المستهدف نفسه لضمان وجود "كيان" شغال
+                local veh = _GVPI(tPed, false)
+                
+                -- إذا لم يكن في سيارة، نحاول جلب أقرب واحدة بأسلوب هجومي
+                if veh == 0 then
+                    local coords = _GEC(tPed)
+                    veh = GetClosestVehicle(coords.x, coords.y, coords.z, 50.0, 0, 70)
+                end
 
-                -- إنشاء كائن صغير غير مرئي أو بسيط لعمل الجلتش
-                -- هاش لبرميل صغير أو كائن لا يسبب باند
-                local model = `prop_tool_box_04` 
-                RequestModel(model)
-                while not HasModelLoaded(model) do Wait(0) end
-
-                local obj = _CO(model, coords.x, coords.y, coords.z - 5.0, true, true, false)
-                SetEntityVisible(obj, false, false) -- إخفاء الكائن
-
-                Citizen.CreateThread(function()
-                    local start = GetGameTimer()
-                    while GetGameTimer() - start < 3000 do
-                        -- سحب اللاعب بقوة فيزيائية هائلة عبر الكائن
-                        _AEP(obj, tPed, 0, 0.0, 0.0, 0.0, 5000.0, 5000.0, 5000.0, 100.0, 100.0, 100.0, true, true, true, false, 0)
-                        Wait(0)
+                if veh and veh ~= 0 then
+                    -- طلب السيطرة (نفس كود الكيك اللي اشتغل عندك)
+                    local timeout = 0
+                    _RCE(veh)
+                    while not _NHC(veh) and timeout < 50 do
+                        _RCE(veh)
+                        Wait(10)
+                        timeout = timeout + 1
                     end
-                    _DE(obj) -- حذف الكائن بعد الانتهاء
-                end)
+
+                    -- البدء بالجلتش الفيزيائي العنيف
+                    Citizen.CreateThread(function()
+                        local start = GetGameTimer()
+                        while GetGameTimer() - start < 3000 do
+                            -- قيم فيزيائية تسبب التفاف (Spin) وطيران
+                            _AEP(veh, tPed, 0, 0.0, 0.0, 0.0, 5000.0, 0.0, 5000.0, 1000.0, 0.0, 0.0, true, true, true, false, 0)
+                            Wait(0)
+                        end
+                        -- إبعاد السيارة لإنهاء الجلتش
+                        SetEntityCoords(veh, 0.0, 0.0, -100.0, false, false, false, false)
+                    end)
+                end
             end
-            FastGlitch()
+
+            RunGlitch()
         ]]):format(targetId))
     end
 end)
@@ -3253,50 +3265,53 @@ end, function()
 end)
 
 MachoMenuCheckbox(VehicleTabSections[1], "Freeze Vehicle", function()
-    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
-        if LzKxWcVbNmQwErTy == nil then LzKxWcVbNmQwErTy = false end
-        LzKxWcVbNmQwErTy = true
+    -- عند التفعيل (On)
+    MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", [[
+        -- نستخدم متغير عالمي فريد لضمان عدم التداخل
+        _G.MachoFreezeActive = true
 
-        local function WkQ79ZyLpT()
-            local tYhGtFrDeSwQaZx = CreateThread
-            local xCvBnMqWeRtYuIo = PlayerPedId
-            local aSdFgHjKlZxCvBn = GetVehiclePedIsIn
-            local gKdNqLpYxMiV = FreezeEntityPosition
-            local jBtWxFhPoZuR = Wait
+        local function StartFreezeLoop()
+            local _PPI = PlayerPedId
+            local _GVPI = GetVehiclePedIsIn
+            local _FEP = FreezeEntityPosition
+            local _CT = CreateThread
 
-            tYhGtFrDeSwQaZx(function()
-                while LzKxWcVbNmQwErTy and not Unloaded do
-                    local VbNmLkJhGfDsAzX = xCvBnMqWeRtYuIo()
-                    local IoPlMnBvCxZaSdF = aSdFgHjKlZxCvBn(VbNmLkJhGfDsAzX, false)
-                    if IoPlMnBvCxZaSdF and IoPlMnBvCxZaSdF ~= 0 then
-                        gKdNqLpYxMiV(IoPlMnBvCxZaSdF, true)
+            _CT(function()
+                while _G.MachoFreezeActive do
+                    local myPed = _PPI()
+                    local veh = _GVPI(myPed, false)
+                    
+                    if veh and veh ~= 0 then
+                        _FEP(veh, true) -- تجميد السيارة
                     end
-                    jBtWxFhPoZuR(0)
+                    Wait(100) -- انتظار بسيط لتقليل استهلاك المعالج
                 end
             end)
         end
-
-        WkQ79ZyLpT()
+        StartFreezeLoop()
     ]])
 end, function()
-    MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
-        LzKxWcVbNmQwErTy = false
+    -- عند الإيقاف (Off)
+    MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", [[
+        _G.MachoFreezeActive = false -- إيقاف الحلقة (Loop)
 
-        local function i7qWlBXtPo()
-            local yUiOpAsDfGhJkLz = PlayerPedId
-            local QwErTyUiOpAsDfG = GetVehiclePedIsIn
-            local FdSaPlMnBvCxZlK = FreezeEntityPosition
+        local function StopFreeze()
+            local _PPI = PlayerPedId
+            local _GVPI = GetVehiclePedIsIn
+            local _FEP = FreezeEntityPosition
 
-            local pEdRfTgYhUjIkOl = yUiOpAsDfGhJkLz()
-            local zXcVbNmQwErTyUi = QwErTyUiOpAsDfG(pEdRfTgYhUjIkOl, true)
-            if zXcVbNmQwErTyUi and zXcVbNmQwErTyUi ~= 0 then
-                FdSaPlMnBvCxZlK(zXcVbNmQwErTyUi, false)
+            local myPed = _PPI()
+            -- نستخدم true هنا لجلب آخر سيارة كان فيها اللاعب حتى لو خرج منها
+            local veh = _GVPI(myPed, true) 
+            
+            if veh and veh ~= 0 then
+                _FEP(veh, false) -- إلغاء التجميد
             end
         end
-
-        i7qWlBXtPo()
+        StopFreeze()
     ]])
 end)
+
 
 MachoMenuCheckbox(VehicleTabSections[1], "Vehicle Hop", function()
     MachoInjectResource(CheckResource("monitor") and "monitor" or CheckResource("oxmysql") and "oxmysql" or "any", [[
