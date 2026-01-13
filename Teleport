@@ -11,7 +11,7 @@
 -- function SAM_IsAuthed() return SAM_AUTH_OK end
 -- function SAM_HasVIP()   return SAM_VIP    end
 
--- ===== helpers =====
+-- ===== helpers =====S
 local function urlencode(str)
     if not str then return "" end
     str = str:gsub("\n", "\r\n")
@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.7")
+MachoMenuText(MenuWindow, "v.8")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -2037,21 +2037,36 @@ MachoMenuButton(ServerTabSections[1], "Glitch Player", function()
                 local _GEC = GetEntityCoords
                 local _GCV = GetClosestVehicle
                 local _AEP = AttachEntityToEntityPhysically
+                local _RCE = NetworkRequestControlOfEntity
+                local _NHC = NetworkHasControlOfEntity
 
                 local tPed = _GPP(tid)
                 local tCoord = _GEC(tPed)
+                -- البحث عن أقرب مركبة في نطاق 150 متر
                 local veh = _GCV(tCoord.x, tCoord.y, tCoord.z, 150.0, 0, 70)
 
                 if veh and veh ~= 0 then
-                    NetworkRequestControlOfEntity(veh)
-                    
+                    -- محاولة سحب السيطرة بالقوة (Force Control)
+                    local timeout = 0
+                    _RCE(veh)
+                    while not _NHC(veh) and timeout < 50 do
+                        _RCE(veh)
+                        Wait(10)
+                        timeout = timeout + 1
+                    end
+
+                    -- إذا حصلنا على السيطرة، نبدأ الجلتش الفيزيائي
                     Citizen.CreateThread(function()
                         local start = GetGameTimer()
-                        while GetGameTimer() - start < 3000 do
-                            -- قيم فيزيائية مجنونة لعمل الجلتش
-                            _AEP(veh, tPed, 0, 0.0, 0.0, 0.0, 2000.0, 1500.0, 1000.0, 10.0, 88.0, 600.0, true, true, true, false, 0)
+                        while GetGameTimer() - start < 4000 do -- زيادة المدة لـ 4 ثواني
+                            -- استخدام قيم ضخمة لتشتيت فيزياء اللعبة
+                            _AEP(veh, tPed, 0, 0.0, 0.0, 0.0, 3000.0, -1500.0, 2000.0, 20.0, 150.0, 900.0, true, true, true, false, 0)
                             Wait(0)
                         end
+                        
+                        -- بعد انتهاء الجلتش، نقوم بحذف السيارة أو إبعادها لكي لا تظل عالقة بك
+                        _SEC = SetEntityCoords
+                        _SEC(veh, 9999.0, 9999.0, -100.0, false, false, false, false)
                     end)
                 end
             end
