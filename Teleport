@@ -1997,32 +1997,40 @@ MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function RunFreeze()
+            local function ForceFreeze()
                 local tid = %d
-                -- تعريف النواتف الأساسية (نفس أسلوب التيلبورت الشغال عندك)
                 local _GPP = GetPlayerPed
-                local _FEP = FreezeEntityPosition
                 local _GEC = GetEntityCoords
-                local _SEC = SetEntityCoords
-
+                local _CO = CreateObject
+                local _AE = AttachEntityToEntity
+                
                 local tPed = _GPP(tid)
+                if tPed == 0 then return end
+                local coords = _GEC(tPed)
 
-                if tPed and tPed ~= 0 then
-                    -- طلب السيطرة الشبكية على اللاعب (مهم جداً للتجميد)
-                    NetworkRequestControlOfEntity(tPed)
-                    
-                    -- تنفيذ التجميد
-                    _FEP(tPed, true)
-                    
-                    -- نرفعه قليلًا عن الأرض لضمان عدم تحركه نهائياً
-                    local coords = _GEC(tPed)
-                    _SEC(tPed, coords.x, coords.y, coords.z, false, false, false, true)
+                -- إنشاء كائن مخفي (صندوق صغير جداً) ليكون هو "المرساة"
+                local model = `prop_tool_box_04`
+                RequestModel(model)
+                while not HasModelLoaded(model) do Wait(0) end
 
-                    -- رسالة اختيارية تظهر لك في الكونسول للتأكيد
-                    -- print("Player Frozen Successfully")
-                end
+                -- إنشاء الكائن تحت الأرض قليلاً لكي لا يراه أحد
+                local anchor = _CO(model, coords.x, coords.y, coords.z - 1.0, true, true, false)
+                SetEntityVisible(anchor, false, false)
+                FreezeEntityPosition(anchor, true) -- تجميد الكائن نفسه
+
+                -- ربط اللاعب بالكائن المجمد
+                -- هذا الأمر "يُجبر" السيرفر على مزامنة موقع اللاعب مع الكائن
+                _AE(tPed, anchor, 0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
+
+                -- تركه مجمداً لمدة 10 ثواني ثم حذف الكائن
+                Citizen.SetTimeout(10000, function()
+                    if DoesEntityExist(anchor) then
+                        DetachEntity(tPed, true, true)
+                        DeleteEntity(anchor)
+                    end
+                end)
             end
-            RunFreeze()
+            ForceFreeze()
         ]]):format(targetId))
     end
 end)
