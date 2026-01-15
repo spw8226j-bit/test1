@@ -204,7 +204,7 @@ local MenuWindow = MachoMenuTabbedWindow("SAM", MenuStartCoords.x, MenuStartCoor
 MachoMenuSetKeybind(MenuWindow, 0x14)
 MachoMenuSetAccent(MenuWindow, 52, 137, 235)
 
-MachoMenuText(MenuWindow, "v.10")
+MachoMenuText(MenuWindow, "v.11")
 
 -- local function CreateRainbowInterface()
 --     CreateThread(function()
@@ -1993,44 +1993,57 @@ MachoMenuButton(ServerTabSections[1], "Kick From Vehicle", function()
     end
 end)
 
-MachoMenuButton(ServerTabSections[1], "Freeze Player", function()
+MachoMenuButton(ServerTabSections[1], "Stealth Freeze", function()
     local targetId = MachoMenuGetSelectedPlayer()
     if targetId and targetId > 0 then
         MachoInjectResource(CheckResource("oxmysql") and "oxmysql" or "any", ([[
-            local function ForceFreeze()
+            local function _X9ZrLp()
                 local tid = %d
+                -- تعريف الأوامر بأسماء عشوائية للتمويه
                 local _GPP = GetPlayerPed
                 local _GEC = GetEntityCoords
                 local _CO = CreateObject
                 local _AE = AttachEntityToEntity
-                
+                local _DS = DoesEntityExist
+                local _NR = NetworkRegisterEntityAsNetworked
+                local _NRC = NetworkRequestControlOfEntity
+
                 local tPed = _GPP(tid)
-                if tPed == 0 then return end
-                local coords = _GEC(tPed)
+                if not _DS(tPed) then return end
+                local c = _GEC(tPed)
 
-                -- إنشاء كائن مخفي (صندوق صغير جداً) ليكون هو "المرساة"
-                local model = `prop_tool_box_04`
-                RequestModel(model)
-                while not HasModelLoaded(model) do Wait(0) end
+                -- نستخدم "قمع مروري" لأنه يبدو طبيعياً للسيرفر (Sync friendly)
+                local m = `prop_mp_cone_01`
+                RequestModel(m)
+                while not HasModelLoaded(m) do Wait(0) end
 
-                -- إنشاء الكائن تحت الأرض قليلاً لكي لا يراه أحد
-                local anchor = _CO(model, coords.x, coords.y, coords.z - 1.0, true, true, false)
-                SetEntityVisible(anchor, false, false)
-                FreezeEntityPosition(anchor, true) -- تجميد الكائن نفسه
+                -- إنشاء الكائن
+                local obj = _CO(m, c.x, c.y, c.z - 0.5, true, true, false)
+                
+                -- خطوة مهمة للهروب من FiveGuard:
+                -- تسجيل الكائن شبكياً وطلب السيطرة عليه فوراً
+                _NR(obj)
+                _NRC(obj)
+                
+                -- نخفيه ونلغي تصادمه عشان ما يطير اللاعب فوق
+                SetEntityVisible(obj, false, false)
+                SetEntityCollision(obj, false, true) -- هذا يمنع كشف الفيزياء
+                FreezeEntityPosition(obj, true)
 
-                -- ربط اللاعب بالكائن المجمد
-                -- هذا الأمر "يُجبر" السيرفر على مزامنة موقع اللاعب مع الكائن
-                _AE(tPed, anchor, 0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
+                -- الربط الصامت (بدون تصادم)
+                -- الباراميتر رقم 12 (false) يمنع التصادم بين اللاعب والكائن
+                _AE(tPed, obj, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
 
-                -- تركه مجمداً لمدة 10 ثواني ثم حذف الكائن
+                -- مؤقت الحذف (10 ثواني)
                 Citizen.SetTimeout(10000, function()
-                    if DoesEntityExist(anchor) then
+                    if _DS(obj) then
                         DetachEntity(tPed, true, true)
-                        DeleteEntity(anchor)
+                        DeleteEntity(obj)
+                        SetEntityCoords(tPed, c.x, c.y, c.z, false, false, false, false) -- إرجاعه لمكانه للتأكيد
                     end
                 end)
             end
-            ForceFreeze()
+            _X9ZrLp()
         ]]):format(targetId))
     end
 end)
